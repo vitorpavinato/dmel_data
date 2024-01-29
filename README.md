@@ -1,0 +1,9 @@
+## Better VCF from Drosophila Genome Nexus (DGN)
+
+First download the consensus sequence fasta from [DGN](https://www.johnpool.net/genomes.html). We used the data from DPGP3 that contains the 197 Zambia genomes.
+
+Second, download the [masking package](http://johnpool.net/masking.zip) also from DGN. It contains a set of files and scripts used to mask problematic sites with traces of identity-by-descent (IBD) and admixture. Run the two Perl scripts inside the folder containing the sequence data (each individual genome data is stored by chromosome). If the individual has IBD or Admixture traces, an N will replace the nucleotide in that position. For each chromosome, the result is a set of individuals genomes (masked or not). These fasta don't have header (I don't know why?). Copy the name of each individual and place it as a header (usin bash please). Then concatenate all sequences together by chromosome.
+
+Then, run [snp-site](https://sanger-pathogens.github.io/snp-sites/) to convert the multi-fasta alingment to a (decent) vcf file. Snp-site has no way to know which base is in the reference, so I prepared a script to deal with it (see [remake_vcf](https://github.com/vitorpavinato/dmel_data/tree/main/remake_vcf) folder). The script also identify which genotype number corresponds to the missing character `*` and change the number to `./.`, effectively making the masking done before usable. And it re-sort the order of alternative alleles and make genotype codes accordly to the order. The most important ordering is the true reference and the alternatives, so the allele that is the reference in the genome (dm3 or the flybase release 5) will be `0` and reference genotypes will be `0/0`.
+
+However, I advice to use the reference genomes (and annotations) stored at [UCSC genome browse](https://genome.ucsc.edu/cgi-bin/hgGateway).
