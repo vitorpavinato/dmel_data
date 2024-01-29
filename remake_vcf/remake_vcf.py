@@ -1,61 +1,27 @@
 '''
-Remake a vcf to a standard format
+Remake a snp-site vcf to a standard format
 '''
-
+import sys
+import argparse
 import subprocess  # this is being used to run samtools
 from pathlib import Path  # This is being used to check if the file exists
 
-# This is experimental
-# class VcfRemaker:
-#     def __init__(self, input_vcf_file: str, output_vcf_file: str, chrom_name: str, path_to_reference: str = "reference") -> None:
-#         self.input_vcf_file = input_vcf_file
-#         self.chrom_name = chrom_name
 
-#     @classmethod
-#     def run_faidx(cls, path_to_reference: str, chrom_name: str) -> None:
-#         samtools_exec = "/usr/local/anaconda3/envs/bioinfo/bin/samtools"
-#         subprocess.run([samtools_exec, "faidx", f"{path_to_reference}/dmel-{chrom_name}-chromosome-r5.57.fasta"], capture_output=True, check=True)
-
-# @classmethod
-# def remake_vcf(cls, vcf_file: str, create_faidx: bool, path_to_reference: str = None, rename_chrom: bool, chrom_name: str, output_file: str):
-#     if create_faidx:
-#         if path_to_reference is None:
-#             raise ValueError("path_to_reference must be provided if create_faidx is True")
-#         elif chrom_name is None:
-#             raise ValueError("chrom_name must be provided if create_faidx is True")
-#         else:
-#             cls.run_faidx()  # Call the run_faidx method
-
-#     if rename_chrom:
-#         if chrom_name == "":
-#             raise ValueError("chrom_name must be provided if rename_chrom is True")
-#     else:
-#         raise ValueError("chrom_name must not be provided if rename_chrom is False")
-
-
-# def generate_file_names(population_prefix: str, chromosome_name: str, input_file_path: str = "", reference_file_path: str = "reference") -> Tuple[str, str]:
-#     """
-#     Generate input and reference file names
-#     """
-#     input_file = Path(input_file_path) / f"{population_prefix}_chr{chromosome_name}.vcf"
-#     reference_file = Path(reference_file_path) / f"dmel-{chromosome_name}-chromosome-r5.57.fasta"
-#     return input_file, reference_file
-
-
-# create faidx with samtools if not exists
+# Check if .fai exists and create it with samtools if it doesn't
 def create_samtools_faix(reference_file: Path, samtools_path: Path) -> None:
     """
     Check the existence of a reference file faidx
     or create it with samtools
     """
 
+    # Check if .fai associated to a reference genome file in fasta exists    
     samtools = samtools_path
     reference_fai_file = reference_file.with_suffix(reference_file.suffix + ".fai")
     if not reference_fai_file.exists():
         make_faidx = subprocess.run([samtools, "faidx", reference_file], capture_output=True, check=True)
 
 
-def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, output_file: Path) -> None:
+def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, chrom_length: int, output_file: Path) -> None:
     """
     Remake a vcf header to a standard format compatible with GATK
     """
@@ -71,6 +37,8 @@ def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, o
     modified_header_lines = header_lines.copy()  # Create a copy of the original header lines
 
     # Remove two lines but add then later in the file processing
+    # That is the reason to save then as variable for later
+    # at same time I am using pop() method.
     chrm_line_info = modified_header_lines.pop(1)
     format_str_inf = modified_header_lines.pop(1)
     colum_names_line = modified_header_lines.pop(1)
@@ -90,7 +58,7 @@ def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, o
     modified_header_lines.extend(new_lines)
 
     # Add a new and modified contig/chromosome line information
-    modified_header_lines.append(f"##contig=<ID={chrom_name},length=23011544>\n")
+    modified_header_lines.append(f"##contig=<ID={chrom_name},length={chrom_length}>\n")
 
     # Add line with reference value
     modified_header_lines.append(f"##reference=file://{reference_file}\n")
@@ -106,40 +74,79 @@ def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, o
 
 
 
-def remake_vcf(input_file: Path, reference_file: Path, chrom_name: str, output_file: Path, samtools_path: Path) -> None:
+def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = None, chrom_length: int = None, output_file: Path = None, samtools_path: Path = None) -> None:
     """
     Remake a vcf to a standard format compatible with GATK
+    It assumes that the vcf file to be remaked is a snp-site vcf for one chromosome.
+    In this case, the reference file must be provided and the chrom_name must be provided.
+    for the same chromosome as in the vcf file.
     """
+
+    # input_file = "remake_vcf/example/example.vcf"
+    # reference_file = Path("remake_vcf/example/reference/dm3.fa")
+    # chrom_name = "chr2L"
+    # chrom_length = 23011544
+    # output_file = "remake_vcf/example/example_output.vcf"
+    # samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
+
+    # Check if all required arguments are provided
+    # This will raise an error if any of the required arguments are None
+    
+    # This is for the reference file
+    if reference_file is None:
+        raise ValueError("reference_file must be provided")
+    
+    # This is for the chrom_name
+    if chrom_name is None:
+        raise ValueError("chrom_name must be provided")
+
+    # This is for the output_file
+    if output_file is None:
+        raise ValueError("output_file must be provided")
+
+    # This is for the samtools_path
+    if samtools_path is None:
+        raise ValueError("samtools_path must be provided")
+
+    # This is for the chrom_length
+    if chrom_length is None:
+        chrom_length = 9999999999    
     
     # Check the existence of a reference file faidx
     create_samtools_faix(reference_file, samtools_path)
     print("Faidx created...")
 
     # Run remake_vcf_header
-    remake_vcf_header(input_file, reference_file, chrom_name, output_file)
+    remake_vcf_header(input_file, reference_file, chrom_name, chrom_length, output_file)
     print("New header created...")
 
     # Process remaining lines
+    #list_of_lines = []
+    
     with open(input_file, "r", encoding="utf-8") as input_file_obj, open(output_file, "a", encoding="utf-8") as output_file_obj:
         for line in input_file_obj:
             if (line.startswith("##") or line.startswith("#")):
                 continue
 
+            # list_of_lines.append(line)
+            # line = list_of_lines[2]
+
             # Extract variant information from the VCF fields
             fields = line.strip().split("\t")
 
+            # Skip empty lines or lines with less than 9 fields
             if len(fields) < 9:
                 continue
 
-            # Fix chromosome name
+            # Replace or add chromosome name
             if fields[0].startswith("chr"):
-                chrom_str = fields[0]
+                if fields[0] is not chrom_name:
+                    print("Chromsome name is not the same as provided. It is going to be replaced.")
+                    fields[0] = chrom_name
+
             elif fields[0] == "." or fields[0] == "1":
-                fields[0] = "chr" + chrom_name
-                chrom_str = fields[0]
-            else:
-                fields[0] = "chr" + fields[0]
-                chrom_str = fields[0]
+                print(f"Chromosome {chrom_name} will be added to the SNP.")
+                fields[0] = chrom_name
 
             # Get vcf ref and alt bases
             vcf_candidate_ref_base = fields[3]
@@ -154,19 +161,20 @@ def remake_vcf(input_file: Path, reference_file: Path, chrom_name: str, output_f
 
             # Check reference base with samtools faidx
             pos = int(fields[1])  # First, cast pos to integer
-            _, chrom = chrom_str.strip().split("r")  # Remove 'chr' from the chrom
 
             # Call samtools faidx to check reference base
             genome_ref_base = subprocess.run([
                 samtools_path,
                 "faidx",
                 reference_file,
-                (chrom + ":" + str(pos) + "-" + str(pos)),
+                (chrom_name + ":" + str(pos) + "-" + str(pos)),
             ],
                                     capture_output=True,
                                     check=False)
 
+            # Get the reference base as a variable
             _, genome_ref_base, *_ = str(genome_ref_base.stdout).strip().split("\\n")
+            genome_ref_base = genome_ref_base.upper()
 
             # Get the index of the missing data character '*'
             idx_of_missing_data = vcf_candidate_bases.index("*")
@@ -197,37 +205,82 @@ def remake_vcf(input_file: Path, reference_file: Path, chrom_name: str, output_f
             # Replace the old vcf reference and alternative bases with the new ones
             fields[3] = vcf_final_bases[0]
             vcf_final_bases.pop(0)
-
             fields[4] = ",".join(vcf_final_bases)
 
             # Save reference counts and frequencies
             total_genotype_count = sum(genotype_counts)
             ref_counts_value = genotype_counts.pop(0)
             ref_counts = f"RC={ref_counts_value}"
-            ref_frequencies = f"RF={ref_counts_value/total_genotype_count}"
+            ref_frequencies = f"RF={round(ref_counts_value/total_genotype_count, ndigits=4)}"
             
             # Save alternative counts and frequencies
             alt_counts = f"AC={','.join(str(x) for x in genotype_counts)}"
-            alt_frequencies = f"AF={','.join(str(x / sum(genotype_counts)) for x in genotype_counts)}"
+            alt_frequencies = f"AF={','.join(str(round(x / sum(genotype_counts), ndigits=4)) for x in genotype_counts)}"
             fields[7] = alt_counts + ";" + alt_frequencies   
 
             # Write the new line
             reassembled_line = '\t'.join(fields)
 
+            # Write the new line
             with open(output_file, 'a', encoding='utf-8') as output_file_obj:
                 output_file_obj.write(reassembled_line + "\n")
 
 
+# def parse_args() -> argparse.Namespace:
+#     """
+#     Parse command line arguments
+#     """
+#     parser = argparse.ArgumentParser("python remake_vcf.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+#     parser.add_argument("-i", "--input_file", type=str, required=True, help="Input vcf file", dest="input_file")
+#     parser.add_argument("-r", "--reference_file", type=str, required=True, help="Reference file", dest="reference_file")
+#     parser.add_argument("-c", "--chrom_name", type=str, required=True, help="Chromosome name", dest="chrom_name")
+#     parser.add_argument("-l", "--chrom_length", type=int, required=True, help="Chromosome length", dest="chrom_length")
+#     parser.add_argument("-o", "--output_file", type=str, required=True, help="Output vcf file", dest="output_file")
+#     parser.add_argument("-s", "--samtools_path", type=str, required=True, help="Path to samtools", dest="samtools_path")
+#     return parser
+
+
 def main() -> None:
+    """
+    Main function
+    """
+    # Parse command line arguments
+    # parser = argparse.ArgumentParser()
+    # if argv[-1] == "":
+    #     argv = argv[0:-1]
+    # args = parser.parse_args(argv)
+
+    # # Define input and output files
+    # input_file = Path(args.input_file)
+    # reference_file = Path(args.reference_file)
+    # chrom_name = args.chrom_name
+    # chrom_length = args.chrom_length
+    # output_file = Path(args.output_file)
+    # samtools_path = Path(args.samtools_path)
 
     # Define input and output files
-    input_file = "ZI_test_chr2L.vcf"
-    reference_file = Path("reference/dmel-2L-chromosome-r5.57.fasta")
-    chrom_name = "2L"
-    output_file = "ZI_test_chr2L_reassembled.vcf"
+    # input_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/examples/example.py")
+    # reference_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/example/reference/dm3.fa")
+    # chrom_name = "chr2L"
+    # chrom_length = 23011544
+    # output_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/examples/example_output.py")
+    # samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
+    
+    # Define input and output files
+    input_file = "remake_vcf/example/example.vcf"
+    reference_file = Path("remake_vcf/example/reference/dm3.fa")
+    chrom_name = "chr2L"
+    chrom_length = 23011544
+    output_file = "remake_vcf/example/example_output.vcf"
     samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
-    remake_vcf(input_file, reference_file, chrom_name, output_file, samtools_path)
+    
+    # Run remake_vcf
+    remake_vcf(input_file, reference_file, chrom_name, chrom_length, output_file, samtools_path)
 
 
 if __name__ == "__main__":
     main()
+#     if len(sys.argv) < 2:
+#         main(["-h"])
+#     else:
+#         main(sys.argv[1:])
