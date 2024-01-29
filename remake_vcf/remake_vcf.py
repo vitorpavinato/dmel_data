@@ -5,7 +5,7 @@ import sys
 import argparse
 import subprocess  # this is being used to run samtools
 from pathlib import Path  # This is being used to check if the file exists
-
+from typing import List
 
 # Check if .fai exists and create it with samtools if it doesn't
 def create_samtools_faix(reference_file: Path, samtools_path: Path) -> None:
@@ -82,13 +82,6 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
     for the same chromosome as in the vcf file.
     """
 
-    # input_file = "remake_vcf/example/example.vcf"
-    # reference_file = Path("remake_vcf/example/reference/dm3.fa")
-    # chrom_name = "chr2L"
-    # chrom_length = 23011544
-    # output_file = "remake_vcf/example/example_output.vcf"
-    # samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
-
     # Check if all required arguments are provided
     # This will raise an error if any of the required arguments are None
     
@@ -121,15 +114,10 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
     print("New header created...")
 
     # Process remaining lines
-    #list_of_lines = []
-    
     with open(input_file, "r", encoding="utf-8") as input_file_obj, open(output_file, "a", encoding="utf-8") as output_file_obj:
         for line in input_file_obj:
             if (line.startswith("##") or line.startswith("#")):
                 continue
-
-            # list_of_lines.append(line)
-            # line = list_of_lines[2]
 
             # Extract variant information from the VCF fields
             fields = line.strip().split("\t")
@@ -174,6 +162,8 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
 
             # Get the reference base as a variable
             _, genome_ref_base, *_ = str(genome_ref_base.stdout).strip().split("\\n")
+            
+            # This will make sure that masked genome will work
             genome_ref_base = genome_ref_base.upper()
 
             # Get the index of the missing data character '*'
@@ -226,61 +216,53 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
                 output_file_obj.write(reassembled_line + "\n")
 
 
-# def parse_args() -> argparse.Namespace:
-#     """
-#     Parse command line arguments
-#     """
-#     parser = argparse.ArgumentParser("python remake_vcf.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-#     parser.add_argument("-i", "--input_file", type=str, required=True, help="Input vcf file", dest="input_file")
-#     parser.add_argument("-r", "--reference_file", type=str, required=True, help="Reference file", dest="reference_file")
-#     parser.add_argument("-c", "--chrom_name", type=str, required=True, help="Chromosome name", dest="chrom_name")
-#     parser.add_argument("-l", "--chrom_length", type=int, required=True, help="Chromosome length", dest="chrom_length")
-#     parser.add_argument("-o", "--output_file", type=str, required=True, help="Output vcf file", dest="output_file")
-#     parser.add_argument("-s", "--samtools_path", type=str, required=True, help="Path to samtools", dest="samtools_path")
-#     return parser
+def parse_args() -> argparse.Namespace:
+    """
+    Parse command line arguments
+    """
+    parser = argparse.ArgumentParser("python remake_vcf.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-i", "--input_file", type=str, required=True, help="Input vcf file", dest="input_file")
+    parser.add_argument("-r", "--reference_file", type=str, required=True, help="Reference file", dest="reference_file")
+    parser.add_argument("-c", "--chrom_name", type=str, required=True, help="Chromosome name", dest="chrom_name")
+    parser.add_argument("-l", "--chrom_length", type=int, required=True, help="Chromosome length", dest="chrom_length")
+    parser.add_argument("-o", "--output_file", type=str, required=True, help="Output vcf file", dest="output_file")
+    parser.add_argument("-s", "--samtools_path", type=str, required=True, help="Path to samtools", dest="samtools_path")
+    return parser
 
 
-def main() -> None:
+def main(argv: List[str]) -> None:
     """
     Main function
     """
     # Parse command line arguments
-    # parser = argparse.ArgumentParser()
-    # if argv[-1] == "":
-    #     argv = argv[0:-1]
-    # args = parser.parse_args(argv)
-
-    # # Define input and output files
-    # input_file = Path(args.input_file)
-    # reference_file = Path(args.reference_file)
-    # chrom_name = args.chrom_name
-    # chrom_length = args.chrom_length
-    # output_file = Path(args.output_file)
-    # samtools_path = Path(args.samtools_path)
+    parser = argparse.ArgumentParser()
+    if argv[-1] == "":
+        argv = argv[0:-1]
+    args = parser.parse_args(argv)
 
     # Define input and output files
-    # input_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/examples/example.py")
-    # reference_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/example/reference/dm3.fa")
+    input_file = Path(args.input_file)
+    reference_file = Path(args.reference_file)
+    chrom_name = args.chrom_name
+    chrom_length = args.chrom_length
+    output_file = Path(args.output_file)
+    samtools_path = Path(args.samtools_path)
+
+    # Define input and output files
+    # input_file = Path("remake_vcf/example/example.vcf")
+    # reference_file = Path("remake_vcf/example/reference/dm3.fa")
     # chrom_name = "chr2L"
     # chrom_length = 23011544
-    # output_file = Path("/Users/vitorpavinato/Documents/Repositories/remake_vcf/examples/example_output.py")
+    # output_file = Path("remake_vcf/example/example_output.vcf")
     # samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
-    
-    # Define input and output files
-    input_file = "remake_vcf/example/example.vcf"
-    reference_file = Path("remake_vcf/example/reference/dm3.fa")
-    chrom_name = "chr2L"
-    chrom_length = 23011544
-    output_file = "remake_vcf/example/example_output.vcf"
-    samtools_path = Path("/usr/local/anaconda3/envs/bioinfo/bin/samtools")
-    
+
     # Run remake_vcf
     remake_vcf(input_file, reference_file, chrom_name, chrom_length, output_file, samtools_path)
 
 
 if __name__ == "__main__":
-    main()
-#     if len(sys.argv) < 2:
-#         main(["-h"])
-#     else:
-#         main(sys.argv[1:])
+    #main()
+    if len(sys.argv) < 2:
+        main(["-h"])
+    else:
+        main(sys.argv[1:])
