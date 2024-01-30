@@ -1,4 +1,4 @@
-# Better VCF from Drosophila Genome Nexus (DGN)
+# Remake vcf file
 
 Some ideas to make DGN data usable for vcf-based tools.
 
