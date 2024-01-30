@@ -235,8 +235,8 @@ def main(argv: List[str]) -> None:
     Main function
     """
     # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    if argv[-1] == "":
+    parser = parse_args()
+    if argv[-1] == '':
         argv = argv[0:-1]
     args = parser.parse_args(argv)
 
@@ -261,7 +261,6 @@ def main(argv: List[str]) -> None:
 
 
 if __name__ == "__main__":
-    #main()
     if len(sys.argv) < 2:
         main(["-h"])
     else:
