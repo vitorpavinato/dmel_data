@@ -103,8 +103,8 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
 
     # This is for the chrom_length
     if chrom_length is None:
-        chrom_length = 9999999999    
-    
+        chrom_length = 9999999999
+
     # Check the existence of a reference file faidx
     create_samtools_faix(reference_file, samtools_path)
     print("Faidx created...")
@@ -144,9 +144,6 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
             # The assigned snps-sites reference should the the first
             vcf_candidate_bases = [vcf_candidate_ref_base] + vcf_candidate_alt_bases
 
-            # Create a list of indexes based on the original order of vcf_candidate_bases elements
-            vcf_candidate_bases_idx = [i for i, x in enumerate(vcf_candidate_bases)]
-
             # Check reference base with samtools faidx
             pos = int(fields[1])  # First, cast pos to integer
 
@@ -166,6 +163,15 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
             # This will make sure that masked genome will work
             genome_ref_base = genome_ref_base.upper()
 
+            # Check if the genome reference base is present in the list of vcf candidate bases
+            # This might deal with assertiment bias on the reference genome
+            if genome_ref_base not in vcf_candidate_bases:
+                print("The reference base is not present in the list of vcf candidate bases. It will be appended.")
+                vcf_candidate_bases.append(genome_ref_base)
+
+            # Create a list of indexes based on the original order of vcf_candidate_bases elements
+            vcf_candidate_bases_idx = [i for i, x in enumerate(vcf_candidate_bases)]
+            
             # Get the index of the missing data character '*'
             idx_of_missing_data = vcf_candidate_bases.index("*")
 
@@ -206,7 +212,7 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
             # Save alternative counts and frequencies
             alt_counts = f"AC={','.join(str(x) for x in genotype_counts)}"
             alt_frequencies = f"AF={','.join(str(round(x / sum(genotype_counts), ndigits=4)) for x in genotype_counts)}"
-            fields[7] = alt_counts + ";" + alt_frequencies   
+            fields[7] = alt_counts + ";" + alt_frequencies
 
             # Write the new line
             reassembled_line = '\t'.join(fields)
@@ -248,7 +254,7 @@ def main(argv: List[str]) -> None:
     output_file = Path(args.output_file)
     samtools_path = Path(args.samtools_path)
 
-    # Define input and output files
+    # # Define input and output files
     # input_file = Path("remake_vcf/example/example.vcf")
     # reference_file = Path("remake_vcf/example/reference/dm3.fa")
     # chrom_name = "chr2L"
