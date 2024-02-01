@@ -77,7 +77,7 @@ def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, c
 def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = None, chrom_length: int = None, output_file: Path = None, samtools_path: Path = None) -> None:
     """
     Remake a vcf to a standard format compatible with GATK
-    It assumes that the vcf file to be remaked is a snp-site vcf for one chromosome.
+    It assumes that the vcf file to be remade is a snp-site vcf for one chromosome.
     In this case, the reference file must be provided and the chrom_name must be provided.
     for the same chromosome as in the vcf file.
     """
