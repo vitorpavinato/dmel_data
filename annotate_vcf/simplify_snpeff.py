@@ -9,10 +9,11 @@ import os
 import argparse
 import sys
 
-
 # FUNCTIONS
-def simplify_snpeff(file: str, outfile: str,
-                    keeponlyterms: bool = False, method: str = "First") -> None:
+def simplify_snpeff(file: str, outfile: str = None,
+                    keeponlyterms: bool = False, 
+                    method: str = "First",
+                    standardvcf: bool = True) -> None:
 
     """
     This function simplifies SNPEff entries of a VCF file.
@@ -52,46 +53,87 @@ def simplify_snpeff(file: str, outfile: str,
             # Split the line into fields using tab as the delimiter
             fields = line.strip().split('\t')
 
-            # Get the ANN field (assuming it's always the eighth field)
+            # Get the ANN field (assuming it's always the eighth INFO field)
             info_field = fields[7]
 
-            # Split the ANN field by commas to separete the SNPEff annotation
-            altcount, refcount, snpeffs, *lo = info_field.split(';')
+            # Two paths for the INFO field: one for standard VCF and one for not standard VCF
+            if standardvcf:
+                print("Working with standard VCF: expecting AC and AF in INFO field ...")
 
-            if (snpeffs == "ReverseComplementedAlleles"):  # check later if this is still necessary
-                _, snpeffann, = lo[0].split("EFF=")
-            else:
-                _, snpeffann, = snpeffs.split("EFF=")
+                # Split the ANN field by commas to separete the SNPEff annotation
+                ac, af, snpeffs, *lo = info_field.split(';')
 
-            # Separete each SNPEff entry
-            snpeffann_entries = snpeffann.split(',')
+                # Raise error if AC and AF are not present:
+                ac_key, ac_value = ac.split('=')
+                af_key, af_value = af.split('=')
+                if ('AC' not in ac_key) or ('AF' not in af_key):
+                    raise ValueError("AC and AF not present in INFO field")
 
-            # For the moment, it only takes the first entry
-            # Get the effect
-            effect, first_snpeff_entry = snpeffann_entries[0].split('(')
+                # Check if any ReverseComplementedAlleles is present
+                # in any SNPEff annotation entry and deal with it
+                if (snpeffs == "ReverseComplementedAlleles"):
+                    _, snpeffann, = lo[0].split("EFF=")
+                else:
+                    _, snpeffann, = snpeffs.split("EFF=")
 
-            # first_snpeff_entry, _ = first_snpeff_entry.split(')')
-            #
-            # Separete each item from the first entry
-            # It might change if I implement another role for effects
-            # This is not being used for the simple rule of taking
-            # the first entry.
-            # Effect_Impact, Functional_Class, Codon_Change, Amino_Acid_Change,
-            # Amino_Acid_length, Gene_Name, Transcript_BioType, Gene_Coding,
-            # Transcript_ID, Exon_Rank, Genotype, *errors = first_snpeff_entry.split('|')
-            
-            # Re-assemble the EFF field with the simplified version
-            # of the SNPEff annottion.
-            fields[7] = altcount + ";" + refcount + ";" + "EFF=" + snpeffann_entries[0]
+                # Separete each SNPEff entry
+                snpeffann_entries = snpeffann.split(',')
 
-            # Re-assemble the entire line
-            reassembled_line = '\t'.join(fields)
+                # It only takes the first entry
+                # Get the effect to use latter in keeping only relevant terms
+                effect, first_snpeff_entry = snpeffann_entries[0].split('(')
+                
+                # Re-assemble the EFF field with the simplified version
+                # of the SNPEff annottion.
+                fields[7] = ac + ";" + af + ";" + "EFF=" + snpeffann_entries[0]
 
-            if keeponlyterms:
-                if any(x == effect for x in relevant_effect_terms):
+                # Re-assemble the entire line
+                reassembled_line = '\t'.join(fields)
+
+                if keeponlyterms:
+                    if any(x == effect for x in relevant_effect_terms):
+                        output_file.write(reassembled_line + "\n")
+                else:
                     output_file.write(reassembled_line + "\n")
+
             else:
-                output_file.write(reassembled_line + "\n")
+                print("Working with standard VCF: ALTCOUNT AND REFCOUNT in INFO field ...")
+                
+                # Split the ANN field by commas to separete the SNPEff annotation
+                altcount, refcount, snpeffs, *lo = info_field.split(';')
+
+                # Raise error if ALTCOUNT and REFCOUNT are not present:
+                altcount_key, altcount_value = altcount.split('=')
+                refcount_key, refcount_value = refcount.split('=')
+                if ('ALTCOUNT' not in altcount_key) or ('REFCOUNT' not in refcount_key):
+                    raise ValueError("ALTCOUNT and REFCOUNT not present in INFO field")
+
+                # Check if any ReverseComplementedAlleles is present
+                # in any SNPEff annotation entry and deal with it
+                if (snpeffs == "ReverseComplementedAlleles"):
+                    _, snpeffann, = lo[0].split("EFF=")
+                else:
+                    _, snpeffann, = snpeffs.split("EFF=")
+
+                # Separete each SNPEff entry
+                snpeffann_entries = snpeffann.split(',')
+
+                # It only takes the first entry
+                # Get the effect to use latter in keeping only relevant terms
+                effect, first_snpeff_entry = snpeffann_entries[0].split('(')
+                
+                # Re-assemble the EFF field with the simplified version
+                # of the SNPEff annottion.
+                fields[7] = altcount + ";" + refcount + ";" + "EFF=" + snpeffann_entries[0]
+
+                # Re-assemble the entire line
+                reassembled_line = '\t'.join(fields)
+
+                if keeponlyterms:
+                    if any(x == effect for x in relevant_effect_terms):
+                        output_file.write(reassembled_line + "\n")
+                else:
+                    output_file.write(reassembled_line + "\n")
 
     return "file processed"
 
