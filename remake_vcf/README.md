@@ -103,9 +103,9 @@ Put everything you have except the `.dict` file in your folder. After creating t
 
 ```bash
 cd reference
-gatk CreateSequenceDictionary \ 
-    R=dm6.fa \ 
-    O=dm6.fa.dict
+gatk CreateSequenceDictionary \\ 
+    -R dm6.fa \\ 
+    -O dm6.fa.dict
 ```
 
 With everything in place, then type, to have lift SNPs from one genome to the target genome:
