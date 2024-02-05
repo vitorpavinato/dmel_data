@@ -122,3 +122,22 @@ gatk LiftoverVcf \\
     --RECOVER_SWAPPED_REF_ALT true
 
 ```
+
+### Additional filtering
+
+Now that everthing is in place, we should filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` for this task.
+
+```zsh
+vcftools --vcf remake_vcf/example/example_output_lifted.vcf \\ 
+        --out example_output_lifted_fltr  
+        --min-alleles 2 \\ 
+        --max-alleles 2 \\ 
+        --max-missing 0.5 \\ 
+        --recode \\ 
+        --recode-INFO-all
+```
+
+Remove the `.recode.` part of the file name to kept file naming simple.
+```zsh
+mv example_output_lifted_fltr.recode.vcf example_output_lifted_fltr.vcf
+```
