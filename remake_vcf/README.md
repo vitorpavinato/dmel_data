@@ -102,7 +102,7 @@ Where `my_folder` is a folder in my computer and `gatk/my_data` is a folder insi
 Put everything you have except the `.dict` file in your folder. After creating the link, we will be able to navigate inside the container. There we will run, to obtain the `.dict` file. You can find the [documentation here](https://gatk.broadinstitute.org/hc/en-us/articles/360037422891-CreateSequenceDictionary-Picard-):
 
 ```bash
-cd liftover
+cd reference
 gatk CreateSequenceDictionary \ 
     R=dm6.fa \ 
     O=dm6.fa.dict
@@ -112,11 +112,13 @@ With everything in place, then type, to have lift SNPs from one genome to the ta
 ```bash
 cd ..
 
-gatk LiftoverVcf \  
-    I=example/example_output.vcf \ 
-    O=liftover/example_output_lifted.vcf \  
-    CHAIN=liftover/dm3ToDm6.over.chain \  
-    REJECT=example_output_rejected.vcf \  
-    R=liftover/dm6.fa
+gatk LiftoverVcf \\ 
+    -I dmel_data/remake_vcf/example/example_output.vcf \\ 
+    -O dmel_data/remake_vcf/example/example_output_lifted.vcf \\ 
+    -C reference/dm3ToDm6.over.chain \\ 
+    --REJECT dmel_data/remake_vcf/example/example_output_rejected.vcf \\ 
+    -R reference/dm6.fa \\ 
+    --WARN_ON_MISSING_CONTIG true \\ 
+    --RECOVER_SWAPPED_REF_ALT true
 
 ```
