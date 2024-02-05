@@ -92,7 +92,7 @@ Now, you need to be able to use the tools inside the Docker with your data. Ther
 
 How to create a folder to link the machines:
 ```zsh
-docker run -v ~/Documents/Repositories/dmel_data/remake_vcf:/gatk/my_data -it broadinstitute/gatk:latest
+docker run -v ~/my_folder:/gatk/my_data -it broadinstitute/gatk:latest
 ```
 
 More info on how to use GATK Docker version, can be found [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991--How-to-Run-GATK-in-a-Docker-container).
