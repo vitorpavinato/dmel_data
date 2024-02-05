@@ -10,10 +10,10 @@ Table of Content:
 
 
 ### Remake vcf file
-Follow the steps on the `remake_vcf` page to make DGN files usable.
+Follow the steps on the `remake_vcf` page to make DGN files usable (the steps also lift it over to the newes Dmel genome building).
 
 ### Annotate vcf SNPs
-One jupiter notebook that documents all the steps to process the annotate `.vcf` files.
+One jupiter notebook in `annotate_vcf` folder that documents all the steps to annotate `.vcf` files.
 
 ### Create SFSs sets
-Another jupyter notebooks with all steps to get the pairs of SFSs.
+Another jupyter notebooks in `sfs_vcf` folder with all steps to get the pairs of SFSs.
