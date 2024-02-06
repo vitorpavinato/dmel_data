@@ -1,102 +1,77 @@
 """
-This program converts an annotated and simplified
-vcf file to a .tsv table
+Program converts an annotated and simplified vcf file to a .tsv table
 """
 import os
 import subprocess
 import argparse
 import sys
-from enum import Enum
+from typing import Tuple
 
 
-# CLASSES
-class Species(Enum):
+# Count the number of alternative and reference genotypes
+def count_genotypes(genotypes: list) -> Tuple[int, int]:
     """
-    Class to create a enum for a species list
+    Count the number of alternative and reference genotypes
+    in a list of genotypes and return a string with the counts
     """
-    DMEL = 1
-    HSAP = 2
+    refcount = 0
+    altcount = 0
+    for genotype in genotypes:
+        if genotype != './.':
+            if genotype == "0/0":
+                refcount += 1
+            elif genotype == "1/1":
+                altcount += 1
+
+    return altcount, refcount
 
 
-# FUNCTIONS
-def vcf_to_tsv(file: str, outfile: str,
-               species: str = "Dmel", nflankinbps: int = 4) -> None:
+# Process the first line of the input file
+def process_first_line(inputfile: str) -> Tuple[str, str, str]:
     """
-    This function converts entries on a VCF file to rows of a table.
-    Because it annotates the mutational context of SNPs, for the moment it
-    only works for two model organims, Drosophia melanogaster and Humans.
-    Maybe add an option for a user specified reference file and annotation.
+    Process the first line of the input file. This is used in conjunction
+    with a railroad pattern to check if the input file has the right format.
     """
+    with open(inputfile, "r", encoding="utf-8") as input_file:
+        first_line = None
+        for line in input_file:
+            if not line.startswith("##") and not line.startswith("#"):
+                first_line = line
+                break
 
-    # Config
-    samtools = "/Users/tur92196/local/samtools1_8/bin/samtools"
+    if first_line is not None:
+        fields = first_line.strip().split('\t')
+        # Check the INFO fields
+        info_field = fields[7]
+        info_field_list = info_field.split(';')
 
-    path, filename = os.path.split(file)
+        # Check if the INFO fields have at least 3 elements or if it is not empty
+        if len(info_field_list) < 3 or info_field == "":
+            raise ValueError("Input file has missing elements in INFO field. Was this vcf annotated with SNPEff?")
 
-    # Define the basename for the outputs from the filename
-    basename, _ = filename.strip().split("_simplified_SIFTpredictions_")
+        # Handle the case when the file is not empty
+        # and has at least 3 elements in INFO field
+        # Split the elements in info_field_list
+        first = info_field_list[0].split('=')[0]
+        second = info_field_list[1].split('=')[0]
+        third = info_field_list[2].split('=')[0]
 
-    # Define input and output files
-    inputfile = file
-
-    if outfile is None:
-        outputfile = path + basename + "_table.tsv"
+        # Return the results for the railroad pattern
+        return first, second, third
     else:
-        outputfile = outfile
+        raise ValueError("Input file is empty")
 
-    # Define the list of chromosomes and the path to the reference file based 
-    # on the selected species
-    if species == Species.DMEL.name:
-        chrm_list = ["2L", "2R", "3L", "3R", "4", "X", "Y"]
-        reference = "/Users/tur92196/WorkDir/data/dgrp2dm6/reference/dmel-all-chromosome-r6.52.fasta"
-        if not os.path.exists((reference + ".fai")):
-            faidx = subprocess.run([samtools, "faidx", reference],
-                                   capture_output=True, check=False)
-    elif species == Species.HSAP.name:
-        chrm_list = ["Nothing in here right now"]
-        reference = "Add_humans_reference_latter"
-    else:
-        raise ValueError("Unknown species! Only Dmel and Hsap are supported!")
 
-    # This defines the header of the output file
-    header = [
-        "chrom",
-        "pos",
-        "id",
-        "ref",
-        "alt",
-        "refcount",
-        "altcount",
-        "refflank",
-        "altflank",
-        "refcodon",
-        "altcodon",
-        "refaa",
-        "altaa",
-        "effect",
-        "snpeff_effimpact",
-        "snpeff_funclass",
-        "snpeff_genename",
-        "snpeff_trnscbiotype",
-        "snpeff_genecoding",
-        "snpeff_trnscid",
-        "sift_trnscid",
-        "sift_geneid",
-        "sift_genename",
-        "sift_region",
-        "sift_vartype",
-        "sifts_core",
-        "sift_median",
-        "sift_pred",
-        "deleteriousness",
-    ]
-    header = "\t".join(str(item) for item in header)
+# Process refaltcount VCF
+def processes_refaltcount_vcf(inputfile: str, chrm_list: list,
+                              reference: str, samtools: str, nflankinbps: int
+                              ) -> Tuple[list, list, list]:
+    """
+    Railroad pattern #1: INFO field has ALTCOUNT AND REFCOUNT.
+    """
 
-    # Prompt message
-    # It might be good to have a progress bar in here
     print("Start processing the annotate VCF file. It might take a while...")
-
-    with open(inputfile, "r", encoding="utf-8") as fp:
+    with open(inputfile, "r", encoding="utf-8") as input_file:
         current_block = []
         lines_in_block = []
         list_block = []
@@ -105,7 +80,7 @@ def vcf_to_tsv(file: str, outfile: str,
         line_trck = 0
         # Read each line in the file and save to a list
         lines = []
-        for line in fp:
+        for line in input_file:
             if line.startswith("##") or line.startswith("#"):
                 continue
 
@@ -117,15 +92,12 @@ def vcf_to_tsv(file: str, outfile: str,
 
             # Unpack FIELDS items
             # anc/ref, derived/alt
-            chrom_str, pos, vcfid, ref, alt, qual, filtr, info = fields[
+            chrom, pos, vcfid, ref, alt, qual, filtr, info = fields[
                 :8
             ]  # maybe use pop() here
 
             # Cast pos to integer
             pos = int(pos)
-
-            # Remove 'chr' from the chrom
-            _, chrom = chrom_str.strip().split("r")
 
             # Unpack items in info
             altcount_, refcount_, snpeff_, *sift_ = info.strip().split(";")
@@ -182,8 +154,8 @@ def vcf_to_tsv(file: str, outfile: str,
                 _, flkng_bf, *_ = str(nt_bf.stdout).strip().split("\\n")
                 _, flkng_af, *_ = str(nt_af.stdout).strip().split("\\n")
 
-                refflank = flkng_bf + ref + flkng_af
-                altflank = flkng_bf + alt + flkng_af
+                refflank = flkng_bf.upper() + ref + flkng_af.upper()
+                altflank = flkng_bf.upper() + alt + flkng_af.upper()
 
                 # This part is for fixing basis in flaking bases string
                 # if SNPs are close (less than nflankinbps)
@@ -232,7 +204,8 @@ def vcf_to_tsv(file: str, outfile: str,
                 ) = eff.strip().split("|")
 
                 # Unpack codons (for gatk format)
-                if effect == "SYNONYMOUS_CODING" or effect == "NON_SYNONYMOUS_CODING":
+                # if effect == "SYNONYMOUS_CODING" or effect == "NON_SYNONYMOUS_CODING":
+                if effect in ("SYNONYMOUS_CODING", "NON_SYNONYMOUS_CODING"):
                     refcodon, altcodon = codon_change.strip().split("/")
 
                 # Unpack items in info::sift (when present)
@@ -258,7 +231,8 @@ def vcf_to_tsv(file: str, outfile: str,
                     ) = siftinfo.strip().split("|")
                     refaa, altaa = aa.strip().split("/")
 
-                    if effect == "NON_SYNONYMOUS_CODING" or "SYNONYMOUS_CODING":
+                    # Define deleteriousness status
+                    if effect == "NON_SYNONYMOUS_CODING":
                         if siftscore == "NA":
                             deleteriousness = "NA"
                         else:
@@ -266,12 +240,12 @@ def vcf_to_tsv(file: str, outfile: str,
                                 deleteriousness = "deleterious"
                             else:
                                 deleteriousness = "tolerated"
-                    else:
+                    elif effect == "SYNONYMOUS_CODING":
                         deleteriousness = "NA"
 
             # Create a re-usable list to store the needed information
             line_list = [
-                chrom_str,
+                chrom,
                 pos,
                 vcfid,
                 ref,
@@ -304,7 +278,331 @@ def vcf_to_tsv(file: str, outfile: str,
             lines.append(line_list)
             line_trck += 1
 
-    # Prompt message
+    return lines, list_lines_in_block, list_block
+
+
+# Process the standard VCF
+def processes_standard_vcf(inputfile: str, chrm_list: list,
+                           reference: str, samtools: str, nflankinbps: int
+                           ) -> Tuple[list, list, list]:
+    """
+    Railroad pattern #2: INFO field has AC AND AF.
+    Genotype counts need to be calculated with count_genotypes().
+    """
+
+    print("Start processing the annotate VCF file. It might take a while...")
+    with open(inputfile, "r", encoding="utf-8") as input_file:
+        current_block = []
+        lines_in_block = []
+        list_block = []
+        list_lines_in_block = []
+        previous_position = 0
+        line_trck = 0
+        # Read each line in the file and save to a list
+        lines = []
+        for line in input_file:
+            if line.startswith("##") or line.startswith("#"):
+                continue
+
+            # Extract variant information from the VCF fields
+            fields = line.strip().split("\t")
+
+            if len(fields) < 8:
+                continue
+
+            # Unpack FIELDS items
+            # anc/ref, derived/alt
+            chrom, pos, vcfid, ref, alt, qual, filtr, info = fields[
+                :8
+            ]  # maybe use pop() here
+
+            genotypes = fields[9:]
+
+            # Cast pos to integer
+            pos = int(pos)
+
+            # Unpack items in info
+            ac_, af_, snpeff_, *sift_ = info.strip().split(";")
+
+            # Get the mutational context
+            # Run samtools faidx as a python subprocess
+            refflank, altflank = "NA", "NA"
+            refcodon, altcodon, refaa, altaa = "NA", "NA", "NA", "NA"
+            effect = "NA"
+            (
+                effect_impact,
+                functional_class,
+                gene_name,
+                transcript_biotype,
+                gene_coding,
+                transcript_id,
+            ) = ("NA", "NA", "NA", "NA", "NA", "NA")
+            (
+                transcript,
+                geneid,
+                genename,
+                region,
+                varianttype,
+                siftscore,
+                siftmedian,
+                siftpred,
+                deleteriousness,
+            ) = ("NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA")
+
+            # Frim this part until the end, run only in canonical chromosomes
+            if any(x == chrom for x in chrm_list):
+                nt_bf = subprocess.run(
+                    [
+                        samtools,
+                        "faidx",
+                        reference,
+                        (chrom + ":" + str(pos - nflankinbps) + "-" + str(pos - 1)),
+                    ],
+                    capture_output=True, check=False
+                )
+                nt_af = subprocess.run(
+                    [
+                        samtools,
+                        "faidx",
+                        reference,
+                        (chrom + ":" + str(pos + 1) + "-" + str(pos + nflankinbps)),
+                    ],
+                    capture_output=True, check=False
+                )
+
+                _, flkng_bf, *_ = str(nt_bf.stdout).strip().split("\\n")
+                _, flkng_af, *_ = str(nt_af.stdout).strip().split("\\n")
+
+                refflank = flkng_bf.upper() + ref + flkng_af.upper()
+                altflank = flkng_bf.upper() + alt + flkng_af.upper()
+
+                # This part is for fixing basis in flaking bases string
+                # if SNPs are close (less than nflankinbps)
+                # This keeps track of block of positions with near SNPs
+                current_position = pos
+
+                if (
+                    current_position - previous_position
+                ) < nflankinbps:  # (maybe nflankinbps - 1)
+                    if not current_block:
+                        current_block.append(previous_position)
+                        lines_in_block.append(line_trck - 1)
+                    current_block.append(current_position)
+                    lines_in_block.append(line_trck)
+                else:
+                    current_block = []
+                    lines_in_block = []
+
+                if len(current_block) > 1:
+                    if current_block not in list_block:
+                        list_block.append(current_block)
+                    if lines_in_block not in list_lines_in_block:
+                        list_lines_in_block.append(lines_in_block)
+
+                previous_position = current_position
+
+                # Unpack items in SNPeff info::eff
+                _, eff_ = snpeff_.strip().split("=")
+                effect, eff = eff_.strip().split("(")  # (gatk format)
+                eff, _ = eff.strip().split(")")
+
+                # ALL SNPEff fields (gatk format)
+                (
+                    effect_impact,
+                    functional_class,
+                    codon_change,
+                    aa_change,
+                    aa_length,
+                    gene_name,
+                    transcript_biotype,
+                    gene_coding,
+                    transcript_id,
+                    exon,
+                    genotype,
+                    *errors,
+                ) = eff.strip().split("|")
+
+                # Unpack codons (for gatk format)
+                # if effect == "SYNONYMOUS_CODING" or effect == "NON_SYNONYMOUS_CODING":
+                if effect in ("SYNONYMOUS_CODING", "NON_SYNONYMOUS_CODING"):
+                    refcodon, altcodon = codon_change.strip().split("/")
+
+                # Unpack items in info::sift (when present)
+                if len(sift_) > 0:
+                    # Unpack items in info::eff
+                    _, siftinfo = sift_[0].strip().split("=")
+
+                    # ALL SIFT fields
+                    (
+                        allele,
+                        transcript,
+                        geneid,
+                        genename,
+                        region,
+                        varianttype,
+                        aa,
+                        aaposition,
+                        siftscore,
+                        siftmedian,
+                        siftnumseqs,
+                        alleletype,
+                        siftpred,
+                    ) = siftinfo.strip().split("|")
+                    refaa, altaa = aa.strip().split("/")
+
+                    # Define deleteriousness status
+                    if effect == "NON_SYNONYMOUS_CODING":
+                        if siftscore == "NA":
+                            deleteriousness = "NA"
+                        else:
+                            if float(siftscore) < 0.05:
+                                deleteriousness = "deleterious"
+                            else:
+                                deleteriousness = "tolerated"
+                    elif effect == "SYNONYMOUS_CODING":
+                        deleteriousness = "NA"
+
+            altcount, refcount = count_genotypes(genotypes)
+            
+            # Create a re-usable list to store the needed information
+            line_list = [
+                chrom,
+                pos,
+                vcfid,
+                ref,
+                alt,
+                refcount,
+                altcount,
+                refflank,
+                altflank,
+                refcodon,
+                altcodon,
+                refaa,
+                altaa,
+                effect,
+                effect_impact,
+                functional_class,
+                gene_name,
+                transcript_biotype,
+                gene_coding,
+                transcript_id,
+                transcript,
+                geneid,
+                genename,
+                region,
+                varianttype,
+                siftscore,
+                siftmedian,
+                siftpred,
+                deleteriousness,
+            ]
+            lines.append(line_list)
+            line_trck += 1
+
+    return lines, list_lines_in_block, list_block
+
+# This function converts entries on a VCF file to rows of a table
+# This is a higher level function
+def vcf_to_tsv(file: str = None, outfile: str = None,
+               reference: str = None,
+               nflankinbps: int = 4,
+               samtools_path: str = None) -> None:
+    """
+    This function converts entries on a VCF file to rows of a table.
+    It annotates the mutational context of SNPs of Drosophia melanogaster.
+    It expects the same reference file used in the VCF (downloaded or lifted over).
+    """
+
+    # Check if input files 
+    if file == "" or file is None:
+        raise ValueError("file must be provided")
+
+    # Check if the file exists
+    if not os.path.exists(file):
+        raise ValueError("file does not exist")
+
+    # Check if samtools path is provided
+    if samtools_path is None:
+        raise ValueError("samtools_path must be provided")
+
+    samtools = samtools_path
+
+    # Check if the reference file is provided
+    if reference is None:
+        raise ValueError("reference must be provided")
+
+    # Check if faidx associated with the reference exists
+    if not os.path.exists((reference + ".fai")):
+        faidx = subprocess.run([samtools, "faidx", reference], capture_output=True, check=False)
+
+    # Get the path of the input file
+    path, filename = os.path.split(file)
+
+    # Define the basename for the the output file in case it is not provided
+    basename, _ = filename.strip().split("_simplified_SIFTpredictions.vcf") 
+
+    # Define input and output files
+    inputfile = file
+
+    if outfile is None:
+        outputfile = path + "/" + basename + "_table.tsv"
+    else:
+        outputfile = outfile
+
+    # Define the list of chromosomes and the path to the reference file based 
+    # on the selected species
+    chrm_list = ["chr2L", "chr2R", "chr3L", "chr3R", "chr4", "chrX", "chrY"]
+
+    # This defines the header of the output file
+    header = [
+        "chrom",
+        "pos",
+        "id",
+        "ref",
+        "alt",
+        "refcount",
+        "altcount",
+        "refflank",
+        "altflank",
+        "refcodon",
+        "altcodon",
+        "refaa",
+        "altaa",
+        "effect",
+        "snpeff_effimpact",
+        "snpeff_funclass",
+        "snpeff_genename",
+        "snpeff_trnscbiotype",
+        "snpeff_genecoding",
+        "snpeff_trnscid",
+        "sift_trnscid",
+        "sift_geneid",
+        "sift_genename",
+        "sift_region",
+        "sift_vartype",
+        "sifts_core",
+        "sift_median",
+        "sift_pred",
+        "deleteriousness",
+    ]
+    header = "\t".join(str(item) for item in header)
+
+    # Implemeting railroads pattern design
+    first, second, third = process_first_line(inputfile)
+
+    if first == "ALTCOUNT" and second == "REFCOUNT":
+        # Execute code for the ALTCOUNT and REFCOUNT condition
+        lines, list_lines_in_block, list_block = processes_refaltcount_vcf(inputfile, chrm_list, reference, samtools, nflankinbps)
+
+    elif first == "AC" and second == "AF":
+        # Execute code for the AC and AF condition
+        lines, list_lines_in_block, list_block = processes_standard_vcf(inputfile, chrm_list, reference, samtools, nflankinbps)
+    else:
+        # Handle the case where the first and second values do not match the expected conditions
+        print("Error: Unsupported values for first and second fields")
+        raise ValueError("Unsupported values for first and second fields")
+
+    # Execute the rest of the function.
     print("Fixing ref and alt mutations on flanking bases. It might take a while...")
     # for block_lines, block_pos in zip(new_list_lines_in_block, new_list_block):
     for block_lines, block_pos in zip(list_lines_in_block, list_block):
@@ -383,9 +681,9 @@ def parseargs():
         type=None,
     )
     parser.add_argument(
-        "-s",
-        help="Species (either Dmel or Hsap)",
-        dest="species",
+        "-r",
+        help="Path to the reference genome of the vcf file",
+        dest="reference",
         required=True,
         type=str,
     )
@@ -396,10 +694,17 @@ def parseargs():
         default=4,
         type=int,
     )
+    parser.add_argument(
+        "-s",
+        help="Path to the samtools",
+        dest="samtools_path",
+        required=True,
+        type=str,
+    )
     return parser
 
 
-def main(argv):
+def main(argv) -> None:
     """
     This is the main program definition.
     """
@@ -408,14 +713,14 @@ def main(argv):
         argv = argv[0:-1]
     args = parser.parse_args(argv)
 
+    # Define input and output files
     file = args.file
     outfile = args.outfile
-    species = args.species
+    reference = args.reference
     nflankinbps = args.nflankinbps
+    samtools_path = args.samtools_path
 
-    result = vcf_to_tsv(
-        file=file, outfile=outfile, species=species, nflankinbps=nflankinbps
-    )
+    result = vcf_to_tsv(file=file, outfile=outfile, reference=reference, nflankinbps=nflankinbps, samtools_path=samtools_path)
     print(result)
 
 
@@ -424,290 +729,3 @@ if __name__ == "__main__":
         main(["-h"])
     else:
         main(sys.argv[1:])
-
-
-# def main(argv):
-
-#     starttime = time.time()
-#     parser = parseargs()
-#     if argv[-1] =='':
-#         argv = argv[0:-1]
-#     args = parser.parse_args(argv)
-
-
-#     file = args.infile
-#     outfile = args.outfile
-#     species = args.species
-#     nflankinbps = args.nflankinbps
-
-#     # CMD for debugging
-#     # file = "dgrp2dm6_chrX_rooted.vcf"
-#     # outdirpath = None
-#     # species = "Dmel"  #"reference/dmel-all-chromosome-r6.52.fasta"
-#     # nflankinbps = 4
-
-#     # Figure out where the input VCF files is
-#     # and change the local path to it
-#     path = os.getcwd()
-#     workdir_, filename =  os.path.split(file)
-
-#     # Here, it moves to the working directory
-#     workdir = os.path.join(path, workdir_)
-#     os.chdir(workdir)
-
-#     # Define the basename for the outputs from the filename
-#     basename, _ = filename.strip().split('.vcf')
-
-#     # Include here steps for annotation with SNPeff and SIFT as a subprocess
-#     # create the folders to save the output of each annotation step
-
-#     # for SNPeff
-#     snpeff_out = "annotations/snpeff"
-#     if not os.path.exists(snpeff_out):
-#               os.makedirs(snpeff_out)
-
-#     # for SIFT
-#     sift_out = "annotations/sift4g"
-#     if not os.path.exists(sift_out):
-#               os.makedirs(sift_out)
-
-#     # Run SNPeff annotation
-#     output_snpeff = (snpeff_out + "/" + basename + "_ann.vcf")
-#     output_basename = (snpeff_out + "/" + basename)
-
-#     # This control flows here allow the user to choose to bypass the SNP annotations if already done.
-#     if doEFF:
-#         SNPEFF="/Users/tur92196/snpEff/snpEff.jar"
-#         SNPEFF_config="/Users/tur92196/snpEff/snpEff.config"
-#         os.system("java -jar " + SNPEFF + " ann -c " + SNPEFF_config + " -fi " + "intervals/si_intervals.bed" + " -o gatk -csvStats " + output_basename +
-#                   " -htmlStats " + (output_basename + ".html") + " -v " + dbSNPEFF + " " + (basename + ".vcf") + " > " + output_snpeff)
-
-#     # Run SIFT annotation
-#     if doSIFT:
-#         SIFT4G = "/Users/tur92196/local/sift4g/SIFT4G_Annotator.jar"
-#         os.system("java -jar " + SIFT4G + " -c -i " + output_snpeff + " -d " + dbSIFT + " -r " + sift_out)
-
-#     if doTable:
-#         # If None in the CMD was defined, used the same dir as input, otherwise check/use the one espeficied in 'outdir'
-#         if outdir is None:
-#             outdir = sift_out
-#         else:
-#             if not os.path.exists(outdir):
-#                 os.makedirs(outdir)
-
-#         outfile = (os.path.join(outdir, basename) + "_annotated_table.tsv")
-#         header = ["chrom", "pos", "id", "ref", "alt", "refcount", "altcount","refflank", "altflank",
-#                 "refcodon", "altcodon", "refaa", "altaa",
-#                 "snpeff_effimpact", "snpeff_funclass", "snpeff_genename", "snpeff_trnscbiotype", "snpeff_genecoding", "snpeff_trnscid",
-#                 "sift_trnscid", "sift_geneid", "sift_genename", "sift_region", "sift_vartype", "sifts_core", "sift_median", "sift_pred", "deleteriousness"]
-#         header = ("\t".join(str(item) for item in header))
-
-#         # This defines the output filename
-#         output_sift = os.path.join(sift_out, (basename + "_ann_SIFTpredictions.vcf"))
-
-#         # Prompt message
-#         print("Start processing the annotate VCF file. It might take a while...")
-
-#         with open(output_sift, 'r') as fp:
-#             current_block = []
-#             lines_in_block = []
-#             list_block = []
-#             list_lines_in_block = []
-#             previous_position = 0
-#             line_trck = 0
-#             # Read each line in the file and save to a list
-#             lines = []
-#             for line in fp:
-#                 if (line.startswith("##") or line.startswith("#")):
-#                         continue
-
-#                 # Extract variant information from the VCF fields
-#                 fields = line.strip().split('\t')
-
-#                 if len(fields) < 8:
-#                         continue
-
-#                 # Unpack FIELDS items
-#                 # anc/ref, derived/alt
-#                 chrom, pos, id, ref, alt, qual, filt, info = fields[:8] # maybe use pop() here
-
-#                 # Cast pos to integer
-#                 pos = int(pos)
-
-#                 # Remove 'chr' from the chrom
-#                 _, chrom = chrom.strip().split('r')
-
-#                 # Unpack items in info
-#                 altcount_, refcount_, snpeff_, *sift_ = info.strip().split(';')
-
-#                 _, altcount = altcount_.strip().split('=')
-#                 _, refcount = refcount_.strip().split('=')
-
-#                 # Get the mutational context
-#                 # Run samtools faidx as a python subprocess
-#                 chrm_list = ["2L", "2R", "3L", "3R", "4", "X", "Y"]
-#                 refflank, altflank = "NA", "NA"
-#                 refcodon, altcodon, refaa, altaa = "NA", "NA", "NA", "NA"
-#                 effect_impact, functional_class, gene_name, transcript_biotype, gene_coding, transcript_id = "NA", "NA", "NA", "NA", "NA", "NA"
-#                 transcript, geneid, genename, region, varianttype, siftscore, siftmedian, siftpred, deleteriousness = "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA"
-
-#                 # Frim this part until the end, run only in canonical chromosomes
-#                 if any(x == chrom for x in chrm_list):
-#                     if not os.path.exists((reference + ".fai")):
-#                         faidx = subprocess.run([samtools, "faidx", reference], capture_output=True)
-
-#                     nt_bf = subprocess.run([samtools, "faidx", reference, (chrom + ":" + str(pos-nflankinbps) + "-" + str(pos-1) )], capture_output=True)
-#                     nt_af = subprocess.run([samtools, "faidx", reference, (chrom + ":" + str(pos+1) + "-" + str(pos+nflankinbps) )], capture_output=True)
-
-#                     _, flkng_bf, *_ = str(nt_bf.stdout).strip().split('\\n')
-#                     _, flkng_af, *_ = str(nt_af.stdout).strip().split('\\n')
-
-#                     refflank = (flkng_bf + ref + flkng_af)
-#                     altflank = (flkng_bf + alt + flkng_af)
-
-#                     # This part is for fixin basis in flaking bases string
-#                     # if SNPs are close (less than nflankinbps)
-#                     # This keeps track of block of positions with near SNPs
-#                     current_position = pos
-
-#                     if (current_position - previous_position) < nflankinbps: #(maybe nflankinbps - 1)
-#                         if not current_block:
-#                             current_block.append(previous_position)
-#                             lines_in_block.append(line_trck-1)
-#                         current_block.append(current_position)
-#                         lines_in_block.append(line_trck)
-#                     else:
-#                         current_block = []
-#                         lines_in_block = []
-
-#                     if len(current_block) > 1:
-#                         if current_block not in list_block:
-#                             list_block.append(current_block)
-#                         if lines_in_block not in list_lines_in_block:
-#                             list_lines_in_block.append(lines_in_block)
-
-#                     previous_position = current_position
-
-#                     # Unpack items in SNPeff info::eff
-#                     _, eff_ = snpeff_.strip().split('=')
-#                     effect, eff  = eff_.strip().split('(')
-
-#                     # ALL SNPEff fields
-#                     effect_impact, functional_class, codon_change, aa_change, gene_name, transcript_biotype, gene_coding, transcript_id, *exon  = eff.strip().split('|')
-
-#                     # Unpack codons
-#                     if (effect == "SYNONYMOUS_CODING" or effect == "NON_SYNONYMOUS_CODING"):
-#                         refcodon, altcodon = codon_change.strip().split('/')
-
-#                     # Unpack items in info::sift (when present)
-#                     if len(sift_) > 0:
-#                         # Unpack items in info::eff
-#                         _, siftinfo = sift_[0].strip().split('=')
-
-#                         # ALL SIFT fields
-#                         allele, transcript, geneid, genename, region, varianttype, aa, aaposition, siftscore, siftmedian, siftnumseqs, alleletype, siftpred =   siftinfo.strip().split('|')
-#                         refaa, altaa = aa.strip().split("/")
-
-#                         if effect == "NON_SYNONYMOUS_CODING" or "SYNONYMOUS_CODING":
-#                             if  siftscore == 'NA':
-#                                 deleteriousness = 'NA'
-#                             else:
-#                                 if float(siftscore) < 0.05:
-#                                         deleteriousness = "deleterious"
-#                                 else:
-#                                     deleteriousness = "tolerated"
-#                         else:
-#                             deleteriousness = 'NA'
-
-#                 # Create a re-usable list to store the needed information
-#                 line_list = [chrom, pos, id, ref, alt, refcount, altcount, refflank, altflank, refcodon, altcodon, refaa, altaa, effect_impact, functional_class, gene_name, transcript_biotype, gene_coding, transcript_id, transcript, geneid, genename, region, varianttype, siftscore, siftmedian, siftpred, deleteriousness]
-#                 lines.append(line_list)
-#                 line_trck +=1
-
-#         # Prompt message
-#         # print("Breaking larger blocks of SNPs...")
-#         # new_list_block = []
-#         # new_list_lines_in_block = []
-
-#         # for block_lines, block_pos in zip(list_lines_in_block, list_block):
-#         #     #print(block_pos)
-#         #     sub_block = [block_pos[0]]
-#         #     sub_block_lines = [block_lines[0]]
-
-#         #     for i in range(1, len(block_pos)):
-#         #         distance = block_pos[i] - sub_block[0]  # Calculate distance from the first element
-
-#         #         if distance <= 3:
-#         #             sub_block.append(block_pos[i])
-#         #             sub_block_lines.append(block_lines[i])
-#         #         else:
-#         #             new_list_block.append(sub_block)
-#         #             sub_block = [block_pos[i]]
-
-#         #             new_list_lines_in_block.append(sub_block_lines)
-#         #             sub_block_lines = [block_lines[i]]
-
-#         #     # Add the last sub-block
-#         #     new_list_block.append(sub_block)
-#         #     new_list_lines_in_block.append(sub_block_lines)
-
-#         # Prompt message
-#         print("Fixing ancestral and derived mutations on flanking bases. It might take a while...")
-#         #for block_lines, block_pos in zip(new_list_lines_in_block, new_list_block):
-#         for block_lines, block_pos in zip(list_lines_in_block, list_block):
-#             blocKsize = len(block_lines)
-#             if blocKsize > 1:
-#                 for i, current_element in enumerate(block_lines):
-#                     elements_before = block_lines[:i]
-#                     elements_after = block_lines[i + 1:]
-#                     current_pos = block_pos[i]
-#                     pos_before = block_pos[:i]
-#                     pos_after = block_pos[i + 1:]
-
-#                     # Get the flanking bases that need to be updated
-#                     current_refflanking = list(lines[current_element][7])
-#                     current_altflanking = list(lines[current_element][8])
-
-#                     # Check if there are multiple elements before or after
-#                     if len(elements_before) >= 1:
-#                         for j, eb in enumerate(elements_before):
-#                             dist = abs(current_pos - pos_before[j])
-#                             if dist > nflankinbps:
-#                                 continue
-#                             else:
-#                                 ref_before = (lines[eb][3])
-#                                 alt_before = (lines[eb][4])
-#                                 current_refflanking[nflankinbps-dist] = ref_before
-#                                 current_altflanking[nflankinbps-dist] = alt_before
-
-#                     if len(elements_after) >= 1:
-#                         for j, ea in enumerate(elements_after):
-#                             dist = abs(current_pos - pos_after[j])
-#                             print(dist)
-#                             if dist > nflankinbps:
-#                                 continue
-#                             else:
-#                                 ref_after = (lines[ea][3])
-#                                 alt_after = (lines[ea][4])
-#                                 current_refflanking[nflankinbps+dist] = ref_after
-#                                 current_altflanking[nflankinbps+dist] = alt_after
-
-#                     # Here update the flanking sequences in the corresponding line
-#                     lines[current_element][7] = "".join(current_refflanking)
-#                     lines[current_element][8] = "".join(current_altflanking)
-
-#         # Prompt message
-#         print("Exporting the processed VCF to a .TSV file")
-#         with open(outfile, 'a') as fo:
-#             fo.write(header + "\n")
-#             for line in lines:
-#                 fo.write(("\t".join(str(item) for item in line)) + "\n")
-#         print("DONE!!!")
-
-
-# if __name__ == "__main__":
-
-#     if len(sys.argv) < 2:
-#         main(['-h'])
-#     else:
-#         main(sys.argv[1:])
