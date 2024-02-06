@@ -11,9 +11,8 @@ import sys
 
 # FUNCTIONS
 def simplify_snpeff(file: str, outfile: str = None,
-                    keeponlyterms: bool = False, 
-                    method: str = "First",
-                    standardvcf: bool = True) -> None:
+                    keeponlyterms: bool = False,
+                    method: str = "First") -> None:
 
     """
     This function simplifies SNPEff entries of a VCF file.
@@ -28,19 +27,54 @@ def simplify_snpeff(file: str, outfile: str = None,
     # Define input and output files
     inputfile = file
 
+    # Check if the input file has the right INFO fields format
+    with open(inputfile, "r", encoding="utf-8") as input_file:
+        first_line = None
+        for line in input_file:
+            if not line.startswith("##") and not line.startswith("#"):
+                first_line = line
+                break
+
+    if first_line is not None:
+        fields = first_line.strip().split('\t')
+        # Check the INFO fields
+        info_field = fields[7]
+        info_field_list = info_field.split(';')
+
+        # Check if the INFO fields have at least 3 elements or if it is not empty
+        if len(info_field_list) < 3 or info_field == "":
+            raise ValueError("Input file has missing elements in INFO field. Was this vcf annotated with SNPEff?")
+
+        # Handle the case when the file is not empty
+        # and has at least 3 elements in INFO field
+        # Split the elements in info_field_list
+        first = info_field_list[0].split('=')[0]
+        second = info_field_list[1].split('=')[0]
+        third = info_field_list[2].split('=')[0]
+
+        if (first != "AC" or first != "ALTCOUNT") and (second != "AF" or second != "REFCOUNT") and (third != "EFF" ):
+            raise ValueError("Input is not supported by this script!")
+
+    else:
+        # Handle the case when the file is empty
+        raise ValueError("Input file has only header information...")
+
+    # This handles the output file name
     if outfile is None:
-        outputfile = path + basename + "_simplified.vcf"
+        outputfile = path + '/' + basename + "_simplified.vcf"
     else:
         outputfile = outfile
+
+    # This handles if keeponlyterms is set to True
+    if keeponlyterms:
+        # Define annotation effects terms we care about
+        relevant_effect_terms = ['INTRON', 'SYNONYMOUS_CODING', 'NON_SYNONYMOUS_CODING', 'INTERGENIC']
 
     # Copy the header from the inputfile to the ouputfile
     with open(inputfile, "r", encoding="utf-8") as input_file, open(outputfile, "w", encoding="utf-8") as output_file:
         for line in input_file:
             if (line.startswith("##") or line.startswith("#")):
                 output_file.write(line)
-
-    # Define annotation effects terms we care about
-    relevant_effect_terms = ['INTRON', 'SYNONYMOUS_CODING', 'NON_SYNONYMOUS_CODING', 'INTERGENIC']
 
     # Open the input file in read mode and output file in write mode
     with open(inputfile, "r") as input_file, open(outputfile, "a") as output_file:
@@ -56,84 +90,35 @@ def simplify_snpeff(file: str, outfile: str = None,
             # Get the ANN field (assuming it's always the eighth INFO field)
             info_field = fields[7]
 
-            # Two paths for the INFO field: one for standard VCF and one for not standard VCF
-            if standardvcf:
-                print("Working with standard VCF: expecting AC and AF in INFO field ...")
+            # Split the ANN field by commas to separete the SNPEff annotation
+            eli, elj, snpeffs, *lo = info_field.split(';')
 
-                # Split the ANN field by commas to separete the SNPEff annotation
-                ac, af, snpeffs, *lo = info_field.split(';')
-
-                # Raise error if AC and AF are not present:
-                ac_key, ac_value = ac.split('=')
-                af_key, af_value = af.split('=')
-                if ('AC' not in ac_key) or ('AF' not in af_key):
-                    raise ValueError("AC and AF not present in INFO field")
-
-                # Check if any ReverseComplementedAlleles is present
-                # in any SNPEff annotation entry and deal with it
-                if (snpeffs == "ReverseComplementedAlleles"):
-                    _, snpeffann, = lo[0].split("EFF=")
-                else:
-                    _, snpeffann, = snpeffs.split("EFF=")
-
-                # Separete each SNPEff entry
-                snpeffann_entries = snpeffann.split(',')
-
-                # It only takes the first entry
-                # Get the effect to use latter in keeping only relevant terms
-                effect, first_snpeff_entry = snpeffann_entries[0].split('(')
-                
-                # Re-assemble the EFF field with the simplified version
-                # of the SNPEff annottion.
-                fields[7] = ac + ";" + af + ";" + "EFF=" + snpeffann_entries[0]
-
-                # Re-assemble the entire line
-                reassembled_line = '\t'.join(fields)
-
-                if keeponlyterms:
-                    if any(x == effect for x in relevant_effect_terms):
-                        output_file.write(reassembled_line + "\n")
-                else:
-                    output_file.write(reassembled_line + "\n")
-
+            # Check if any ReverseComplementedAlleles is present
+            # in any SNPEff annotation entry and deal with it
+            if (snpeffs == "ReverseComplementedAlleles"):
+                _, snpeffann, = lo[0].split("EFF=")
             else:
-                print("Working with standard VCF: ALTCOUNT AND REFCOUNT in INFO field ...")
-                
-                # Split the ANN field by commas to separete the SNPEff annotation
-                altcount, refcount, snpeffs, *lo = info_field.split(';')
+                _, snpeffann, = snpeffs.split("EFF=")
 
-                # Raise error if ALTCOUNT and REFCOUNT are not present:
-                altcount_key, altcount_value = altcount.split('=')
-                refcount_key, refcount_value = refcount.split('=')
-                if ('ALTCOUNT' not in altcount_key) or ('REFCOUNT' not in refcount_key):
-                    raise ValueError("ALTCOUNT and REFCOUNT not present in INFO field")
+            # Separete each SNPEff entry
+            snpeffann_entries = snpeffann.split(',')
 
-                # Check if any ReverseComplementedAlleles is present
-                # in any SNPEff annotation entry and deal with it
-                if (snpeffs == "ReverseComplementedAlleles"):
-                    _, snpeffann, = lo[0].split("EFF=")
-                else:
-                    _, snpeffann, = snpeffs.split("EFF=")
+            # It only takes the first entry
+            # Get the effect to use latter in keeping only relevant terms
+            effect, first_snpeff_entry = snpeffann_entries[0].split('(')
+            
+            # Re-assemble the EFF field with the simplified version
+            # of the SNPEff annottion.
+            fields[7] = eli + ";" + elj + ";" + "EFF=" + snpeffann_entries[0]
 
-                # Separete each SNPEff entry
-                snpeffann_entries = snpeffann.split(',')
+            # Re-assemble the entire line
+            reassembled_line = '\t'.join(fields)
 
-                # It only takes the first entry
-                # Get the effect to use latter in keeping only relevant terms
-                effect, first_snpeff_entry = snpeffann_entries[0].split('(')
-                
-                # Re-assemble the EFF field with the simplified version
-                # of the SNPEff annottion.
-                fields[7] = altcount + ";" + refcount + ";" + "EFF=" + snpeffann_entries[0]
-
-                # Re-assemble the entire line
-                reassembled_line = '\t'.join(fields)
-
-                if keeponlyterms:
-                    if any(x == effect for x in relevant_effect_terms):
-                        output_file.write(reassembled_line + "\n")
-                else:
+            if keeponlyterms:
+                if any(x == effect for x in relevant_effect_terms):
                     output_file.write(reassembled_line + "\n")
+            else:
+                output_file.write(reassembled_line + "\n")
 
     return "file processed"
 
@@ -146,7 +131,7 @@ def parseargs():
     parser.add_argument("-o", help="A character string naming a file",
                         dest="outfile", default=None, type=str)
     parser.add_argument("-f", help="Keep only relevant terms (it removes up(down)-stream SNPs)",
-                        dest="keepterms", default=False, type=bool)
+                        dest="keeponlyterms", default=False, type=bool)
     parser.add_argument("-m", help="Method to consolidate SNPEff annotation",
                         dest="method", default="First", type=str)
     return parser
@@ -163,11 +148,11 @@ def main(argv):
 
     file = args.file
     outfile = args.outfile
-    keepterms = args.keepterms
+    keeponlyterms = args.keeponlyterms
     method = args.method
 
     result = simplify_snpeff(
-        file=file, outfile=outfile, keeponlyterms=keepterms, method=method
+        file=file, outfile=outfile, keeponlyterms=keeponlyterms, method=method
     )
     print(result)
 
@@ -178,16 +163,6 @@ if __name__ == "__main__":
         main(['-h'])
     else:
         main(sys.argv[1:])
-
-
-
-
-
-
-
-
-
-
 
 
 # Majority-rule like effects filtering
