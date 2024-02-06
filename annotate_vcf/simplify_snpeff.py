@@ -61,7 +61,7 @@ def simplify_snpeff(file: str, outfile: str = None,
 
     # This handles the output file name
     if outfile is None:
-        outputfile = path + '/' + basename + "_simplified.vcf"
+        outputfile = path + basename + "_simplified.vcf"
     else:
         outputfile = outfile
 
