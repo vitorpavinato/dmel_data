@@ -10,7 +10,7 @@ from pandas import DataFrame
 
 # Create a .BED file with only short introns
 def filter_short_introns_from_bed(
-    input_bed: str, output_bed: str, chrom_list: list[str], 
+    input_bed: str, output_bed: str, chrom_list: list[str],
     short_intron_size: int = 86, trailling_size: int = 8
 ) -> DataFrame:
     """
@@ -97,7 +97,8 @@ def snp_totalcounts_dict(
     """
     Covert a given pandas DataFrame
     containing SNPs to a dictionary based on
-    the SNP total counts.
+    the SNP total counts. It expect a df with
+    "refcount" and "altcount" fields.
     """
 
     # Initialize the snps dictionary
@@ -116,6 +117,7 @@ def snp_totalcounts_dict(
     return snps_counts_dict
 
 # Downsampling SFSs
+
 
 def downsample_sfs(
     original_sfs: list[int],
@@ -185,7 +187,8 @@ def sfs_from_counts_dict(
     folded: bool,
 ) -> list[int | float]:
     """
-    Get the SFS from each sample sizes (total counts) in dict
+    Get the SFS from each sample sizes (total counts) in dict.
+    Then combine the SFSs.
     """
 
     # Create an empty dict to save each popsize SFS
@@ -264,14 +267,24 @@ def main() -> None:
 
     # Example usage for project_sfs_v*
     # A small SFS
-    sfs = [0, 10, 9, 4, 5, 6, 3, 2]
+    #sfs = [0, 10, 9, 4, 5, 6, 3, 2]
+    sfs = [0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
     print(sfs, sum(sfs))
 
-    n = len(sfs)
-    m = 5
+    n = 11  # Total number of gene copies
+    m = 10  # Sample size m < n
 
     downsampled_sfs = downsample_sfs(sfs, n, m)
     print(downsampled_sfs, sum(downsampled_sfs))
+
+    # Test the sfs_from_counts_dict function
+    test_count_dict = {
+                        11: [1, 2, 3, 4, 5],
+                        12: [1, 2, 3, 4, 5]
+    
+    } 
+    result = sfs_from_counts_dict(test_count_dict, min_size=11, max_size=12, folded=False)
+    print(result, sum(result))  
 
 
 if __name__ == "__main__":
