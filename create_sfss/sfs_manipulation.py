@@ -22,7 +22,7 @@ def filter_short_introns_from_bed(
     with open(input_bed, "r", encoding="utf-8") as inbed, open(output_bed, "w", encoding="utf-8") as outbed:
         for linen, line in enumerate(inbed):
             line = line.rstrip("\n")
-            if (line.startswith("##") or line.startswith("#") or line.startswith(">") or 
+            if (line.startswith("##") or line.startswith("#") or line.startswith(">") or
                 line.startswith("A") or line.startswith("T") or line.startswith("C") or line.startswith("G")):
                 continue
 
@@ -226,9 +226,32 @@ def sfs_from_counts_dict(
     return sfs
 
 
+def get_raw_sfs_from_counts_dict(
+    snps_counts_dict: dict[int, list[int]],
+    min_size: int,
+    max_size: int,
+    folded: bool,
+) -> dict[int, list[int]]:
+
+    # Create an empty dict to save each popsize SFS
+    # list of values for each key popsize
+    sizes_dict_sfs = {}
+
+    for i in range(min_size, max_size + 1):
+        sizes_dict_sfs[i] = [0] * (i + 1)
+
+    # Sequence category -wise loop to fill the
+    # dictionary of popsize SFS
+    for si, list_alt_counts in snps_counts_dict.items():
+        for alt_counts in list_alt_counts:
+            sizes_dict_sfs[si][alt_counts] += 1
+
+    return sizes_dict_sfs
+
+
 def main() -> None:
     """Test code"""
-    
+
     # Example usage for filter_snps
     # Generate random data for vcf DataFrame
     np.random.seed(42)  # Setting seed for reproducibility
@@ -281,10 +304,10 @@ def main() -> None:
     test_count_dict = {
                         11: [1, 2, 3, 4, 5],
                         12: [1, 2, 3, 4, 5]
-    
-    } 
+
+    }
     result = sfs_from_counts_dict(test_count_dict, min_size=11, max_size=12, folded=False)
-    print(result, sum(result))  
+    print(result, sum(result))
 
 
 if __name__ == "__main__":
