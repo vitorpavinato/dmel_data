@@ -295,6 +295,7 @@ def find_closest_snp_pairs(
     return paired_snps_dict1, paired_snps_dict2
 
 
+# Maybe remove this function
 def sfs_from_snp_dict(
     snp_dict: dict[int, dict[int, list[int, int]]],
     min_popsize: int,
