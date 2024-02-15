@@ -1,13 +1,12 @@
 """
-Test file for create_sfs_dict.py
+Test file for fold_sfs.py
 """
-
 
 import pytest
 from .sfs_utils import fold_sfs
 
 
-def fold_sfs_empty_sfs():
+def test_fold_sfs_empty_sfs():
     input_data = []  # Create an empty list
 
     # Assert that calling create_snp_total_counts_dict with an empty 
@@ -16,7 +15,7 @@ def fold_sfs_empty_sfs():
         fold_sfs(input_data)
 
 
-def fold_sfs_even_number_sample_sfs():
+def test_fold_sfs_even_number_sample_sfs():
     input_data = [14, 9, 2, 2, 1, 1, 1]  # Create SFS of size n+1, n=6
     input_sum = 30.0
 
@@ -28,7 +27,7 @@ def fold_sfs_even_number_sample_sfs():
     assert input_sum == expected_output_sum
 
 
-def fold_sfs_odd_number_sample_sfs():
+def test_fold_sfs_odd_number_sample_sfs():
     input_data = [12, 8, 3, 2, 2, 1, 1, 1]  # Create SFS of size n+1, n=7
     input_sum = 30.0
 

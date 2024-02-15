@@ -66,6 +66,13 @@ def filter_snps_by_interval(
     3. with ending coordinates for the interval.
     """
 
+    # Raise error for empty tst_df and bed_df
+    if tsv_df.empty:
+        raise ValueError("tsv_df is empty")
+
+    if bed_df.empty:
+        raise ValueError("bed_df is empty")
+
     # Get unique chromosomes from the SNP DataFrame
     unique_chromosomes = tsv_df.iloc[:, 0].unique()
 

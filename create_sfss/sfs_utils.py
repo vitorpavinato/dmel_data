@@ -87,9 +87,10 @@ def fold_sfs(
     mid_idx = int(len(sfs)/2)
 
     if len(sfs) % 2 > 0:
-        
+        # If the SFS is odd, get the middle value
         mid_value = sfs.pop(mid_idx)
     else:
+        # If the SFS is even, set the middle value to None
         mid_value = None
 
     # Devide the SFS in two parts:
