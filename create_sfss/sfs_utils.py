@@ -109,3 +109,52 @@ def fold_sfs(
         fsfs.append(mid_value)
 
     return fsfs
+
+
+# Extra functions to manipulate SFSs in dictionaries
+# These functions were created to manipulate SFSs of
+# DGRP2 datasets on 16/Feb/2024.
+
+# Function to define common dict keys among a list of dictionaries
+def find_common_dict_keys(list_of_chrm_dicts: list[dict]) -> set[str]:
+    """
+    Find the common keys among a list of dictionaries.
+    The common keys are the SNP total counts common to
+    all chromosome dictionaries.
+    """
+
+    common_keys = set(list_of_chrm_dicts[0].keys())
+    for d in list_of_chrm_dicts[1:]:
+        common_keys = common_keys.intersection(d.keys())
+    return common_keys
+
+
+# Function to sum the values of the common keys in all dictionaries.
+def sum_sfs_in_dict_by_keys(
+    list_of_chrm_dicts: list[dict],
+    common_keys: set[str]
+) -> dict:
+    """
+    Sum the values of the common keys in all dictionaries.
+    """
+
+    combined_chrm_sfs_by_key = {}
+
+    for key in common_keys:
+        combined_chrm_sfs_by_key[key] = [sum(x) for x in zip(*[d[key] for d in list_of_chrm_dicts])]
+
+    return combined_chrm_sfs_by_key
+
+
+# Function to fold the SFSs in dictionary
+def fold_sfss_in_dict(dict_of_unfolded_sfss: dict) -> dict:
+    """
+    Fold the SFSs in dictionary of unfolded SFSs.
+    """
+
+    folded_sfs_dict = {}
+    for key, values in dict_of_unfolded_sfss.items():
+        folded_sfs = fold_sfs(values)
+        folded_sfs_dict[key] = folded_sfs
+
+    return folded_sfs_dict
