@@ -7,6 +7,7 @@ import subprocess  # this is being used to run samtools
 from pathlib import Path  # This is being used to check if the file exists
 from typing import List
 
+
 # Check if .fai exists and create it with samtools if it doesn't
 def create_samtools_faix(reference_file: Path, samtools_path: Path) -> None:
     """
@@ -18,10 +19,14 @@ def create_samtools_faix(reference_file: Path, samtools_path: Path) -> None:
     samtools = samtools_path
     reference_fai_file = reference_file.with_suffix(reference_file.suffix + ".fai")
     if not reference_fai_file.exists():
-        make_faidx = subprocess.run([samtools, "faidx", reference_file], capture_output=True, check=True)
+        make_faidx = subprocess.run([samtools, "faidx", reference_file],
+                                    capture_output=True, check=True)
 
 
-def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, chrom_length: int, output_file: Path) -> None:
+def remake_vcf_header(
+    input_file: Path, reference_file: Path, chrom_name: str,
+    chrom_length: int, output_file: Path
+) -> None:
     """
     Remake a vcf header to a standard format compatible with GATK
     """
@@ -73,22 +78,28 @@ def remake_vcf_header(input_file: Path, reference_file: Path, chrom_name: str, c
             output_file_obj.write(line)
 
 
-
-def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = None, chrom_length: int = None, output_file: Path = None, samtools_path: Path = None) -> None:
+def remake_vcf(
+    input_file: Path, reference_file: Path = None,
+    chrom_name: str = None, chrom_length: int = None,
+    output_file: Path = None, samtools_path: Path = None
+) -> None:
     """
     Remake a vcf to a standard format compatible with GATK
-    It assumes that the vcf file to be remade is a snp-site vcf for one chromosome.
-    In this case, the reference file must be provided and the chrom_name must be provided.
-    for the same chromosome as in the vcf file.
+    It assumes that the vcf file to be remade is a snp-site
+    vcf for one chromosome. Chromosomes will be named as chr2L,
+    chr2R, etc., since UCSC references have chromosomes prefix
+    name as chr. In this case, the reference file and the
+    chrom_name must be provided for the same chromosome as
+    in the vcf file.
     """
 
     # Check if all required arguments are provided
     # This will raise an error if any of the required arguments are None
-    
+
     # This is for the reference file
     if reference_file is None:
         raise ValueError("reference_file must be provided")
-    
+
     # This is for the chrom_name
     if chrom_name is None:
         raise ValueError("chrom_name must be provided")
@@ -110,7 +121,9 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
     print("Faidx created...")
 
     # Run remake_vcf_header
-    remake_vcf_header(input_file, reference_file, chrom_name, chrom_length, output_file)
+    remake_vcf_header(input_file, reference_file,
+                      chrom_name, chrom_length,
+                      output_file)
     print("New header created...")
 
     # Process remaining lines
@@ -127,12 +140,23 @@ def remake_vcf(input_file: Path, reference_file: Path = None, chrom_name: str = 
                 continue
 
             # Replace or add chromosome name
+            # This should take care of chromosome names like chr2L, chr2R, chrX, etc
+            # If a wrong name is provided, it will be replaced.
             if fields[0].startswith("chr"):
-                if fields[0] is not chrom_name:
+                if fields[0] != chrom_name:
                     print("Chromsome name is not the same as provided. It is going to be replaced.")
                     fields[0] = chrom_name
 
-            elif fields[0] == "." or fields[0] == "1":
+            # This should take care of chromosome names like 2L, 2R, X, etc
+            # If a wrong chromosome was provided, it will be replaced.
+            elif fields[0].endswith(("L", "R")) or fields[0] == "X":
+                if fields[0] != chrom_name.lstrip("chr"):
+                    print("Chromsome name is not the same as provided. It is going to be replaced.")
+                    fields[0] = chrom_name
+
+            # And this should take care of unnamed chromosomes with "." or 1
+            # This should be from the snp-site vcf
+            elif fields[0] in (".", "1"):
                 print(f"Chromosome {chrom_name} will be added to the SNP.")
                 fields[0] = chrom_name
 
