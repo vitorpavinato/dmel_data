@@ -1,5 +1,5 @@
 """
-Test file for fold_sfs.py
+Test file for fold_sfs
 """
 
 import pytest

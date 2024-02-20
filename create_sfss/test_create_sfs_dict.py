@@ -1,5 +1,5 @@
 """
-Test file for create_sfs_dict.py
+Test file for create_sfs_dict
 """
 
 

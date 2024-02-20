@@ -1,5 +1,5 @@
 """
-Test file for filter_snps_by_interval.py
+Test file for filter_snps_by_interval
 """
 
 import pytest

@@ -1,5 +1,5 @@
 """
-Test file for downsample_sfs.py
+Test file for downsample_sfs
 """
 
 import pytest

@@ -3,7 +3,76 @@ This module contains a set of functions to create
 site-frequency spectrums (SFSs) and manipulate SFSs.
 """
 
+import numpy as np
+from pandas import DataFrame
 from scipy.stats import hypergeom
+
+
+# Create an unfolded SFS from a DataFrame
+def create_unfolded_sfs_from_df(
+    input_df: DataFrame,
+    allele_count_column_name: str,
+    max_number_haplotypes: int
+) -> list[int | float]:
+    """
+    Create an unfolded SFS from a DataFrame.
+    A DataFrame should have the at least the following columns:
+    refcount and altcount.
+    """
+
+    # Raise error for an empty DataFrame
+    if input_df.empty:
+        raise ValueError("DataFrame is empty")
+
+    # Create an empty unfolded SFS
+    unfolded_sfs = [0] * (max_number_haplotypes + 1)
+
+    # Fill up the unfolded SFS
+    for _, row in input_df.iterrows():
+        allele_counts = row[allele_count_column_name]
+        unfolded_sfs[allele_counts] += 1
+
+    return unfolded_sfs
+
+
+# Fold an unfolded SFS
+def fold_sfs(
+    sfs: list[int | float]
+) -> list[int | float]:
+    """
+    Fold an unfolded SFS
+    """
+
+    # Raise error for an empty SFS
+    if not sfs:
+        raise ValueError("SFS is empty")
+
+    # Get the middle index
+    mid_idx = int(len(sfs)/2)
+
+    if len(sfs) % 2 > 0:
+        # If the SFS is odd, get the middle value
+        mid_value = sfs.pop(mid_idx)
+    else:
+        # If the SFS is even, set the middle value to None
+        mid_value = None
+
+    # Devide the SFS in two parts:
+    # First part before the mid-index, the second part
+    # after the mid-index. The two list should no include
+    # the mid-index. Then revert the second list.
+    before_mididx = sfs[0:mid_idx]
+    after_mididx = sfs[mid_idx:]
+
+    rev_after_mididx = after_mididx.copy()
+    rev_after_mididx.reverse()
+
+    fsfs = [x + y for x, y in zip(before_mididx, rev_after_mididx)]
+
+    if mid_value is not None:
+        fsfs.append(mid_value)
+
+    return fsfs
 
 
 # Get the a SFS from each of SNP total counts in dict
@@ -71,45 +140,39 @@ def downsample_sfs(
     return sample_sfs
 
 
-# Fold an unfolded SFS
-def fold_sfs(
-    sfs: list[int | float]
+# Create a wrapper for SFS downsampling (and SFS folding) functions:
+def downsample_sfs_in_dict(
+    sfs_dict: dict,
+    sample_size: int, fold: bool = False
 ) -> list[int | float]:
     """
-    Fold an unfolded SFS
+    Project a distribution of an unfolded or folded site-frequency spectrum
     """
 
-    # Raise error for an empty SFS
-    if not sfs:
-        raise ValueError("SFS is empty")
+    # Raise error for an empty dictionary
+    if not sfs_dict:
+        raise ValueError("Dictionary is empty")
 
-    # Get the middle index
-    mid_idx = int(len(sfs)/2)
+    # List of downsampled SFSs
+    list_ds_sfs = []
 
-    if len(sfs) % 2 > 0:
-        # If the SFS is odd, get the middle value
-        mid_value = sfs.pop(mid_idx)
-    else:
-        # If the SFS is even, set the middle value to None
-        mid_value = None
+    # Now donwsample only SFSs with key values higher than sample_size
+    for key, values in sfs_dict.items():
+        if key == sample_size:
+            list_ds_sfs.append(values)
+        else:
+            ds_sfs = downsample_sfs(values, key, sample_size)
+            list_ds_sfs.append(ds_sfs)
 
-    # Devide the SFS in two parts:
-    # First part before the mid-index, the second part
-    # after the mid-index. The two list should no include
-    # the mid-index. Then revert the second list.
-    before_mididx = sfs[0:mid_idx]
-    after_mididx = sfs[mid_idx:]
+    # Conver the list of SFS to an np.array
+    sfs_array = np.array(list_ds_sfs)
 
-    rev_after_mididx = after_mididx.copy()
-    rev_after_mididx.reverse()
+    # Sum column-wise to get the final SFS
+    sfs = list(np.sum(sfs_array, 0))
 
-    fsfs = [x + y for x, y in zip(before_mididx, rev_after_mididx)]
-
-    if mid_value is not None:
-        fsfs.append(mid_value)
-
-    return fsfs
-
+    if fold:
+        return fold_sfs(sfs)
+    return sfs
 
 # Extra functions to manipulate SFSs in dictionaries
 # These functions were created to manipulate SFSs of
