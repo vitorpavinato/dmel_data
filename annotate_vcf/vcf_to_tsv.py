@@ -513,7 +513,7 @@ def vcf_to_tsv(file: str = None, outfile: str = None,
     It expects the same reference file used in the VCF (downloaded or lifted over).
     """
 
-    # Check if input files 
+    # Check if input files are provided
     if file == "" or file is None:
         raise ValueError("file must be provided")
 
@@ -539,7 +539,7 @@ def vcf_to_tsv(file: str = None, outfile: str = None,
     path, filename = os.path.split(file)
 
     # Define the basename for the the output file in case it is not provided
-    basename, _ = filename.strip().split("_simplified_SIFTpredictions.vcf") 
+    basename, _ = filename.strip().split("_simplified_SIFTpredictions.vcf")
 
     # Define input and output files
     inputfile = file
