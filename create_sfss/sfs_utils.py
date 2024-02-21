@@ -12,7 +12,7 @@ from scipy.stats import hypergeom
 def create_unfolded_sfs_from_df(
     input_df: DataFrame,
     allele_count_column_name: str,
-    max_number_haplotypes: int
+    max_number_of_haplotypes: int
 ) -> list[int | float]:
     """
     Create an unfolded SFS from a DataFrame.
@@ -25,7 +25,7 @@ def create_unfolded_sfs_from_df(
         raise ValueError("DataFrame is empty")
 
     # Create an empty unfolded SFS
-    unfolded_sfs = [0] * (max_number_haplotypes + 1)
+    unfolded_sfs = [0] * (max_number_of_haplotypes + 1)
 
     # Fill up the unfolded SFS
     for _, row in input_df.iterrows():

@@ -11,8 +11,8 @@ mutational context pairing of the original pipeline, kept here for the record.
 '''
 from typing import Collection
 import numpy as np
-import pandas as pd
 from pandas import DataFrame
+from .sfs_utils import downsample_sfs, fold_sfs
 
 
 def calculate_distances(
@@ -91,16 +91,16 @@ def find_consecutive_positions(positions: list[int]) -> list[bool]:
     return positions_to_keep
 
 
-def set_snp_sequence_category(df_tsv: pd.DataFrame) -> list[str]:
+def set_snp_sequence_category(df: DataFrame) -> list[str]:
     """
     This define the mutational context each SNP in a dataFrame.
     Create a column containing the sequence category for each SNP
     in a DataFrame. The df should have, "ref", "alt" and "altflank"
     fields.
     """
-    list_refalleles = df_tsv['ref']
-    list_altalleles = df_tsv['alt']
-    list_altflanks = df_tsv['altflank']
+    list_refalleles = df['ref']
+    list_altalleles = df['alt']
+    list_altflanks = df['altflank']
     
     sequence_categories = [f"{altflank[3]}{ref}/{alt}{altflank[5]}" for ref, alt, altflank  in zip(list_refalleles, list_altalleles, list_altflanks)]
     return sequence_categories
@@ -193,7 +193,7 @@ def create_snp_dict(
 
 
 def create_snp_dict_wrapper(
-    df: pd.DataFrame,
+    df: DataFrame,
     sequence_categories_dict: dict[int, str]
 ) -> dict[int, dict[int, list[int, int]]]:
     """
@@ -298,8 +298,8 @@ def find_closest_snp_pairs(
 # Maybe remove this function
 def sfs_from_snp_dict(
     snp_dict: dict[int, dict[int, list[int, int]]],
-    min_popsize: int,
-    max_popsize: int,
+    min_sample_size: int,
+    max_sample_size: int,
     folded: bool,
 ) -> list[int | float]:
     """
@@ -310,10 +310,10 @@ def sfs_from_snp_dict(
 
     # Create an empty dict to save each popsize SFS
     # list of values for each key popsize
-    popsize_dict = {}
+    sample_size_dict = {}
 
-    for i in range(min_popsize, max_popsize + 1):
-        popsize_dict[i] = [0] * (i+1)
+    for i in range(min_sample_size, max_sample_size + 1):
+        sample_size_dict[i] = [0] * (i+1)
 
     # Sequence category -wise loop to fill the
     # dictionary of popsize SFS
@@ -321,17 +321,17 @@ def sfs_from_snp_dict(
         dict_pos = snp_dict[seq_key]
         for pos in dict_pos:
             snp_counts = dict_pos[pos]
-            popsize_dict[snp_counts[1]][snp_counts[0]] += 1
+            sample_size_dict[snp_counts[1]][snp_counts[0]] += 1
 
-    # Convert the popsize_dict to a list and apply
+    # Convert the sample_size_dict to a list and apply
     # downsampling in the SFS for higher values than
-    # min_popsize
+    # min_sample_size
     sfs_list = []
-    for popsize, sfs in popsize_dict.items():
-        if popsize == min_popsize:
+    for sample_popsize, sfs in sample_size_dict.items():
+        if sample_popsize == min_sample_size:
             sfs_list.append(sfs)
         else:
-            ds = downsample_sfs(sfs, popsize, min_popsize)
+            ds = downsample_sfs(sfs, sample_popsize, min_sample_size)
             sfs_list.append(ds)
 
     # Conver the list of SFS to an np.array
