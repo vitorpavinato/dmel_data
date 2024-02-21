@@ -153,3 +153,26 @@ def create_snp_total_counts_dict(df: DataFrame, ) -> dict[int, list[int]]:
     snp_total_counts_dict_sorted = dict(sorted(snp_total_counts_dict.items()))
 
     return snp_total_counts_dict_sorted
+
+
+
+## Extra functions for some use cases
+
+# Count the number of complete and incomplete codons in a given DataFrame
+from pandas import DataFrame
+def check_snp_codon_length(df: DataFrame, column_stored_codons: str) -> dict[int, int]:
+    """
+    This functions check the length of the codons in the column 
+    'column_stored_codons' in the DataFrame 'df' and returns 
+    a dictionary with the number of codons of each length in a dictionary.
+    """
+    
+    codon_length_dict = {}
+    for snp in df[column_stored_codons]:
+        codon_length = len(snp)
+        if codon_length not in codon_length_dict:
+            codon_length_dict[codon_length] = 1
+        else:
+            codon_length_dict[codon_length] += 1
+
+    return codon_length_dict
