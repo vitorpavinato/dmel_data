@@ -96,12 +96,11 @@ def filter_snps_by_interval(
 
 
 # Impute missing haplotypes
-def impute_missing_haplotypes(input_df: DataFrame, max_number_haplotypes: int) -> DataFrame:
+def impute_missing_haplotypes(input_df: DataFrame, max_number_of_haplotypes: int) -> DataFrame:
     """
     This function imputes missing haplotypes by replacing the missing values, 
     that is the difference between the total count and the maximum total count.
-    This function replaces complete the number of genotypes only for the common
-    allele.
+    This function complete the number of haplotypes with the common allele.
     """
 
     # Raise error for an empty DataFrame
@@ -112,13 +111,13 @@ def impute_missing_haplotypes(input_df: DataFrame, max_number_haplotypes: int) -
     df = input_df.copy()
 
     for index, row in df.iterrows():  # Iterate over the rows of the DataFrame
-        if row['totalcount'] < max_number_haplotypes:
+        if row['totalcount'] < max_number_of_haplotypes:
             allele_counts = (row['refcount'], row['altcount'])  # Access counts for the current row
             idx_common_allele = allele_counts.index(max(allele_counts))
             if idx_common_allele == 0:
-                df.at[index, 'refcount'] += max_number_haplotypes - row['totalcount']  # Update refcount for the current row
+                df.at[index, 'refcount'] += max_number_of_haplotypes - row['totalcount']  # Update refcount for the current row
             else:
-                df.at[index, 'altcount'] += max_number_haplotypes - row['totalcount']  # Update altcount for the current row
+                df.at[index, 'altcount'] += max_number_of_haplotypes - row['totalcount']  # Update altcount for the current row
 
     return df
 
