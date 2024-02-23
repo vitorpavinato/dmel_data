@@ -2,6 +2,7 @@
 Test file for impute_missing_haplotypes
 """
 
+
 import pytest
 from pandas import DataFrame
 from pandas.testing import assert_frame_equal

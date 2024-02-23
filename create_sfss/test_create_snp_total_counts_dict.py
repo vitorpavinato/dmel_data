@@ -17,6 +17,7 @@ def test_create_snp_total_counts_dict_empty_dataframe():
     with pytest.raises(ValueError, match="DataFrame is empty"):
         create_snp_total_counts_dict(input_data)
 
+
 def test_create_snp_total_counts_dict_single_input():
     np.random.seed(42)  # Setting seed for reproducibility
     input_data = pd.DataFrame({

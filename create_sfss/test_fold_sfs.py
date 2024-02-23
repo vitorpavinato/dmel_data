@@ -2,6 +2,7 @@
 Test file for fold_sfs
 """
 
+
 import pytest
 from .sfs_utils import fold_sfs
 
