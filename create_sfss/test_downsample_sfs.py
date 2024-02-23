@@ -2,6 +2,7 @@
 Test file for downsample_sfs
 """
 
+
 import pytest
 from .sfs_utils import downsample_sfs
 

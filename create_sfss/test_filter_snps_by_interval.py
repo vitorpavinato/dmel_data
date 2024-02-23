@@ -2,6 +2,7 @@
 Test file for filter_snps_by_interval
 """
 
+
 import pytest
 from pandas import DataFrame
 from pandas.testing import assert_frame_equal

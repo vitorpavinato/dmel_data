@@ -9,10 +9,12 @@ SNPs that might createambiguous mutational context
 ("find_consecutive_positions"). The remaining functions are part of the
 mutational context pairing of the original pipeline, kept here for the record.
 '''
-from typing import Collection
+
+from typing import Dict, List, Union, Tuple, Callable, Collection
+import inspect
 import numpy as np
 from pandas import DataFrame
-from .sfs_utils import downsample_sfs, fold_sfs
+from sfs_utils import downsample_sfs, fold_sfs
 
 
 def calculate_distances(
@@ -106,7 +108,7 @@ def set_snp_sequence_category(df: DataFrame) -> list[str]:
     return sequence_categories
 
 
-def create_sequence_categories_dic() -> dict[int, str]:
+def create_sequence_categories_dict() -> dict[int, str]:
     """
     This creates a look-up dictionary for the sequence
     category. The dictionary then needs to be provided to
@@ -194,71 +196,167 @@ def create_snp_dict(
 
 def create_snp_dict_wrapper(
     df: DataFrame,
-    sequence_categories_dict: dict[int, str]
+    sequence_categories_dict: dict[int, str],
+    snp_class: str
 ) -> dict[int, dict[int, list[int, int]]]:
     """
     Wrapper for create_snp_dict. This wrapper allows to process different
     effect mutations: introns, non-synonymous and synonymous.
     It expect the "effect" field to be one of "INTRON",
-    "NON_SYNONYMOUS_CODING".
+    "NON_SYNONYMOUS_CODING", or "SYNONYMOUS_CODING".
     """
-    introns_df = df[df['effect'] == "INTRON"]
-    nonsyns_df = df[df['effect'] == "NON_SYNONYMOUS_CODING"]
-    syns_df = df[df['effect'] == "SYNONYMOUS_CODING"]
 
-    introns_dict = create_snp_dict(introns_df, sequence_categories_dict)
-    nonsyns_dict = create_snp_dict(nonsyns_df, sequence_categories_dict)
-    syns_dict = create_snp_dict(syns_df, sequence_categories_dict)
+    if snp_class == "introns":
+        introns_df = df[df['effect'] == "INTRON"]
+        introns_dict = create_snp_dict(introns_df, sequence_categories_dict)
+        return introns_dict
 
-    return introns_dict, nonsyns_dict, syns_dict
+    elif snp_class == "exons":
+        nonsyns_df = df[df['effect'] == "NON_SYNONYMOUS_CODING"]
+        syns_df = df[df['effect'] == "SYNONYMOUS_CODING"]
+        nonsyns_dict = create_snp_dict(nonsyns_df, sequence_categories_dict)
+        syns_dict = create_snp_dict(syns_df, sequence_categories_dict)
+        return nonsyns_dict, syns_dict
+
+    else:
+        raise ValueError("snp_class must be 'introns' or 'exons'")
 
 
-def find_closest(lst: list[int], k: int) -> tuple[int, int] | None:
+def is_sorted(lst):
     """
-    Find the closest number to k in a list of numbers.
+    From Codeium: Check if list is sorted
+    """
+    return all(lst[i] <= lst[i+1] for i in range(len(lst)-1))
+
+
+def find_a_snp(inpute_list: list[int]) -> tuple[int, int] | None:
+    """
+    This simply take the first item in sorted list as the closest
+    item to the other list. The list of position is sorted,
+    so the first item should be the closest item to the first
+    other list.
+    """
+    # Check if the list is sorted
+    if not is_sorted(inpute_list):
+        sorted_list = sorted(inpute_list)
+    else:
+        sorted_list = inpute_list
+
+    # Find the closest position
+    closest_num_idx = 0
+    closest_num = sorted_list[0]
+
+    return closest_num, closest_num_idx
+
+
+def find_a_closest_snp(inpute_list: list[int], k: int) -> tuple[int, int] | None:
+    """
+    Find the closest position to a target position k in
+    a list of sorted positions.
     This functions is part of the find_close_snp_pairs.
     """
-    # lst.sort()
+
+    # Check if the list is sorted
+    if not is_sorted(inpute_list):
+        sorted_list = sorted(inpute_list)
+    else:
+        sorted_list = inpute_list
+
+    # Find the closest position
     closest_num_idx = 0
-    closest_num = lst[0]
-    if len(lst) > 1:
-        for idx, num in enumerate(lst):
+    closest_num = sorted_list[0]
+    if len(sorted_list) > 1:
+        for idx, num in enumerate(sorted_list):
             if abs(num - k) < abs(closest_num - k):
                 closest_num = num
                 closest_num_idx = idx
             if num > k:
                 break
+
     return closest_num, closest_num_idx
 
 
-def simple_find_closest(lst: list[int], k: int) -> tuple[int, int] | None:
+def find_a_closest_snp_within_interval(
+    inpute_list: list[int],
+    k: int,
+    interval: int
+) -> tuple[int, int] | None:
     """
-    This simply take the first item in one list as the closest
-    item to the other list. The list of position is sorted,
-    so the first item should be the closest item to the first
-    other list.
+    Find the closest position to a target position k in a list of sorted 
+    positions within a predefined interval.
+    This functions is part of the find_close_snp_pairs.
     """
-    # lst.sort()
+
+    # Check if the list is sorted
+    if not is_sorted(inpute_list):
+        sorted_list = sorted(inpute_list)
+    else:
+        sorted_list = inpute_list
+
+    # Check if interval is provided
+    if not interval:
+        raise ValueError("interval must be provided")
+
+    # Find the closest position
     closest_num_idx = 0
-    closest_num = lst[0]
+    closest_num = sorted_list[0]
+    if len(sorted_list) > 1:
+        for idx, num in enumerate(sorted_list):
+            if abs(num - k) < abs(closest_num - k) and abs(num - k) <= interval:
+                closest_num = num
+                closest_num_idx = idx
+            if num > k:
+                break
+
     return closest_num, closest_num_idx
 
 
+# NEED SOME WORK IN HERE
 def find_closest_snp_pairs(
-    dict1: dict[int, dict[int, list[int, int]]],
-    dict2: dict[int, dict[int, list[int, int]]]
-) -> dict[int, dict[int, list[int, int]]]:
+    dict1: Dict[int, Dict[int, List[Tuple[int, int]]]],
+    dict2: Dict[int, Dict[int, List[Tuple[int, int]]]]
+    # ,
+    # find_closest_func: Union[Callable[[List[int]], Tuple[int, int]], Callable[[List[int], int], Tuple[int, int]], Callable[[List[int], int, int], Tuple[int, int]]]
+) -> Tuple[Dict[int, Dict[int, List[Tuple[int, int]]]], Dict[int, Dict[int, List[Tuple[int, int]]]]]:
     """Find pairs of closest SNPs from two distinct
     dictionaries. The first dictionary must be the one
     with less SNPs (usually introns or any other neutral
     control)
     """
 
-    # Check if if both dictionaries are not empty
-    if dict1 and dict2:
-        print("Both dictionaries are not empty!")
-    else:
+    # Check if both dictionaries are not empty
+    if not dict1 or not dict2:
         raise ValueError("One or both dictionaries are empty!")
+
+    # # Check if find_closest_func is provided
+    # if find_closest_func is None:
+    #     raise ValueError("find_closest_func must be provided!")
+
+    # # Check if find_closest_func is callable
+    # if not callable(find_closest_func):
+    #     raise ValueError("find_closest_func must be callable!")
+
+    # # Define find_snp function with k and interval arguments
+    # def selected_func(func, imput_list=None, k=None, interval=None) -> Callable:
+    #     def wrapper(*args, **kwargs):
+    #         if 'imput_list' in kwargs:
+    #             return func(*args, **kwargs, imput_list=imput_list)
+    #         elif 'k' in kwargs and 'interval' in kwargs and 'imput_list' in kwargs:
+    #             return func(*args, **kwargs)
+    #         elif 'k' in kwargs:
+    #             return func(*args, **kwargs, k=k)
+    #         elif 'interval' in kwargs:
+    #             return func(*args, **kwargs, interval=interval)
+    #         else:
+    #             return func(*args, **kwargs, k=k, interval=interval)
+    #     return wrapper
+
+    # # Define the interval based on the find_closest_func
+    # if len(inspect.signature(find_closest_func).parameters) == 3:
+    #     interval = int(find_closest_func.__annotations__.get("interval"))
+    #     find_snp = selected_func(find_closest_func, interval)
+    # else:
+    #     find_snp = selected_func(find_closest_func)
 
     # Two empty dictionaries to save each SNP
     # in a pair found in both input dictionaries
@@ -267,21 +365,21 @@ def find_closest_snp_pairs(
 
     # Transverse each sequence category (seq_key) in the first
     # dictionary, finding the same seq_key in the second dictionary
-    for seq_key in dict1:
+    for seq_key, dict1_positions in dict1.items():
         if seq_key in dict2:
-            dict1_positions = dict1[seq_key]
             dict2_positions = dict2[seq_key]
             list_dict2_positions = list(dict2_positions)
 
-            # When there is a seq_key in both, transvers the list of 
+            # When there is a seq_key in both, transvers the list of
             # positions in the first, finding a closes SNPs in the second.
-            # Remove the kept SNPs from the second dictionary list to 
+            # Remove the kept SNPs from the second dictionary list to
             # avoid repeting the same SNP. Leave the loop when the list of
             # SNPs in the second dictionary seq_key is exhausted.
 
             for pos in dict1_positions:
-                # closest_pos, closest_pos_idx = find_closest(list_dict2_positions, pos)
-                closest_pos, closest_pos_idx = simple_find_closest(list_dict2_positions, pos)
+                # Find the closest position in the second dictionary
+                # This part accepts a function as an argument
+                closest_pos, closest_pos_idx = find_a_snp(list_dict2_positions)
 
                 paired_snps_dict1.setdefault(seq_key, {})[pos] = dict1_positions[pos]
                 paired_snps_dict2.setdefault(seq_key, {})[closest_pos] = dict2_positions[closest_pos]
@@ -296,11 +394,12 @@ def find_closest_snp_pairs(
 
 
 # Maybe remove this function
-def sfs_from_snp_dict(
+def create_unfolded_sfs_from_snp_dict(
     snp_dict: dict[int, dict[int, list[int, int]]],
-    min_sample_size: int,
+    count_data_type: str,
     max_sample_size: int,
-    folded: bool,
+    min_sample_size: int = None,
+    folded: bool = False,
 ) -> list[int | float]:
     """
     Get the SFS from each sample size in dict. The input
@@ -308,38 +407,85 @@ def sfs_from_snp_dict(
     sequence_category: position: [alt_count, total_count].
     """
 
-    # Create an empty dict to save each popsize SFS
-    # list of values for each key popsize
-    sample_size_dict = {}
+    # Raise error for an empty dictionary
+    if not snp_dict:
+        raise ValueError("Dictionary is empty")
 
-    for i in range(min_sample_size, max_sample_size + 1):
-        sample_size_dict[i] = [0] * (i+1)
+    # Check if max_sample_size are provided
+    if not max_sample_size:
+        raise ValueError("at least max_sample_size must be provided")
 
-    # Sequence category -wise loop to fill the
-    # dictionary of popsize SFS
-    for seq_key in snp_dict:
-        dict_pos = snp_dict[seq_key]
-        for pos in dict_pos:
-            snp_counts = dict_pos[pos]
-            sample_size_dict[snp_counts[1]][snp_counts[0]] += 1
+    # Check if and max_sample_size are integers
+    if not isinstance(max_sample_size, int):
+        raise ValueError("max_sample_size must be integers")
 
-    # Convert the sample_size_dict to a list and apply
-    # downsampling in the SFS for higher values than
-    # min_sample_size
-    sfs_list = []
-    for sample_popsize, sfs in sample_size_dict.items():
-        if sample_popsize == min_sample_size:
-            sfs_list.append(sfs)
-        else:
-            ds = downsample_sfs(sfs, sample_popsize, min_sample_size)
-            sfs_list.append(ds)
+    # Railroad pattern to determine what to do based on the the count_data_type
+    if count_data_type == "imputed":  # imputed data needs max sample size only
+        print("Working with imputed data...")
 
-    # Conver the list of SFS to an np.array
-    sfs_array = np.array(sfs_list)
+        # Create an empty unfolded SFS
+        unfolded_sfs = [0] * (max_sample_size + 1)
 
-    # Sum column-wise to get the final SFS
-    sfs = list(np.sum(sfs_array, 0))
+        # Fill in the unfolded SFS
+        for seq_key in snp_dict:
+            for pos in snp_dict[seq_key]:
+                alt_count = snp_dict[seq_key][pos][0]
+                unfolded_sfs[alt_count] += 1
 
-    if folded:
-        return fold_sfs(sfs)
-    return sfs
+        if folded:
+            return fold_sfs(unfolded_sfs)
+        return unfolded_sfs
+
+    elif count_data_type == "downsampled":  # downsample needs a min and max sample sizes
+
+        # Check if max_sample_size are provided
+        if min_sample_size is None:
+            raise ValueError("For downsampled data max_sample_size must be provided")
+
+        # Check if and max_sample_size are integers
+        if not isinstance(min_sample_size, int):
+            raise ValueError("min_sample_size must also be integers")
+
+        # Check if min_sample_size < max_sample_size
+        if min_sample_size > max_sample_size:
+            raise ValueError("min_sample_size must be less than or equal to max_sample_size")
+
+        print("Working with downsampled data...")
+
+        # Create an empty dict to save each popsize SFS
+        # list of values for each key popsize
+        sample_size_dict = {}
+
+        for i in range(min_sample_size, max_sample_size + 1):
+            sample_size_dict[i] = [0] * (i+1)
+
+        # Sequence category -wise loop to fill the
+        # dictionary of popsize SFS
+        for seq_key in snp_dict:
+            dict_pos = snp_dict[seq_key]
+            for pos in dict_pos:
+                snp_counts = dict_pos[pos]
+                sample_size_dict[snp_counts[1]][snp_counts[0]] += 1
+
+        # Convert the sample_size_dict to a list and apply
+        # downsampling in the SFS for higher values than
+        # min_sample_size
+        unfolded_sfs_list = []
+        for sample_size, usfs in sample_size_dict.items():
+            if sample_size == min_sample_size:
+                unfolded_sfs_list.append(usfs)
+            else:
+                ds_usfs = downsample_sfs(usfs, sample_size, min_sample_size)
+                unfolded_sfs_list.append(ds_usfs)
+
+        # Conver the list of SFS to an np.array
+        unfolded_sfs_array = np.array(unfolded_sfs_list)
+
+        # Sum column-wise to get the final SFS
+        unfolded_sfs = list(np.sum(unfolded_sfs_array, 0))
+
+        if folded:
+            return fold_sfs(unfolded_sfs)
+        return unfolded_sfs
+    else:
+        raise ValueError("count_data_type must be 'downsampled' or 'imputed'")

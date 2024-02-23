@@ -1,9 +1,10 @@
 """
-This modeule contains a set of functions to manipulate SNP data stored 
-in a pandas DataFrame. 
+This modeule contains a set of functions to manipulate SNP data stored
+in a pandas DataFrame.
 """
 
 from pandas import DataFrame
+from scipy.stats import hypergeom
 
 
 # Create a .BED file with only short introns
@@ -122,6 +123,45 @@ def impute_missing_haplotypes(input_df: DataFrame, max_number_of_haplotypes: int
     return df
 
 
+# Randomly sample for missing haplotypes
+def ramdomly_sample_haplotypes(input_df: DataFrame, min_number_of_haplotypes: int) -> DataFrame:
+    """
+    This function randomly sample allele counts values given the total count
+    and the target sampling number of haplotypes. It uses the hypergeometric
+    distribution, as this distribution mimics the sampling from a finite
+    population without replacement. The functions returns a copy of the input
+    dataframe with the updated counts.
+    """
+
+    # Raise error for an empty DataFrame
+    if input_df.empty:
+        raise ValueError("DataFrame is empty")
+
+    # Copy the input dataframe
+    df = input_df.copy()
+
+    for index, row in df.iterrows():  # Iterate over the rows of the DataFrame
+        actual_totalcount = row['totalcount']
+        if actual_totalcount > min_number_of_haplotypes:
+            actual_altcount = row['altcount']
+
+            # Sample the altcounts with the hypergeometric distribution
+            updated_altcount = hypergeom.rvs(
+                actual_totalcount, actual_altcount,
+                min_number_of_haplotypes, size=1
+            )
+
+            # Update the refcounts
+            updated_refcount = min_number_of_haplotypes - updated_altcount
+
+            # Now update the DataFrame entries
+            df.at[index, 'altcount'] = updated_altcount
+            df.at[index, 'refcount'] = updated_refcount
+            df.at[index, 'totalcount'] = min_number_of_haplotypes
+
+    return df
+
+
 # Convert a given pandas DataFrame to a dictionary of SNPs counts
 def create_snp_total_counts_dict(df: DataFrame, ) -> dict[int, list[int]]:
     """
@@ -142,9 +182,8 @@ def create_snp_total_counts_dict(df: DataFrame, ) -> dict[int, list[int]]:
 
     # Fill up the SNPs dictionary using the table data
     for _, row in df.iterrows():
-        ref_counts = row["refcount"]
         alt_counts = row["altcount"]
-        total_counts = ref_counts + alt_counts
+        total_counts = row["totalcount"]
 
         if total_counts not in snp_total_counts_dict:
             snp_total_counts_dict[total_counts] = []
