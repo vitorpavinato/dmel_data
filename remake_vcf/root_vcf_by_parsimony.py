@@ -1,5 +1,6 @@
 """
-Annotate SNPs with the ancestral allele by parsimony.
+Annotate SNPs with the ancestral allele by parsimony only
+if the outgroup allele is one of the target species allele.
 """
 
 import sys
@@ -89,11 +90,23 @@ def root_snps_by_parsimony(
             # This will make sure that masked genome will work
             outgroup_ref_base = outgroup_ref_base.upper()
 
+            # How I dealt with polarization is based on Machado et al. 2020.
+            # The script tag the rooting only if the outgroup has the
+            # alignment OR or has the one of the target species allelels.
+            # Otherwise, the target species reference allele is used.
             if outgroup_ref_base in alleles:
-                fields[2] = f"AA={outgroup_ref_base}"
+                aa_annotation = f"AA={outgroup_ref_base}"
+                if outgroup_ref_base == fields[3]:
+                    fields[2] = 'root_ref'
+                else:
+                    fields[2] = 'root_alt'
             else:
-                fields[2] = f"AA={fields[3]}"
+                aa_annotation = f"AA={fields[3]}"
+                fields[2] = 'root_unknown'
 
+            # Include the aa_annotation string int fields[7]
+            fields[7] = aa_annotation + ';' + fields[7]
+            
             # Write the new line
             reassembled_line = '\t'.join(fields)
 
