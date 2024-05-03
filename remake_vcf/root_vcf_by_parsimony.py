@@ -1,6 +1,10 @@
 """
 Annotate SNPs with the ancestral allele by parsimony only
 if the outgroup allele is one of the target species allele.
+This script is part of a collection of scripts for working 
+vcf files. I tried to implement a linux principle of having
+a tool to do a well a specific job. This is for rooting SNPs
+only.
 """
 
 import sys

@@ -1,5 +1,9 @@
 '''
-Remake a snp-site vcf to a standard format
+Remake a snp-site vcf to a standard format.
+I tried to implement a linux principle of having
+a tool to do a well a specific job. This tool is a
+bit more comphrehensive as it do some housekeeping 
+work to make a proper vcf file.
 '''
 import sys
 import argparse

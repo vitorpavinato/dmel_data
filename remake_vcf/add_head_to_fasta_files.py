@@ -1,6 +1,9 @@
 """
-Add a header line beginning with ">" to all
-files in a file listing files prefixes.
+Add a header line beginning with ">" to all files in
+a file listing files prefixes. I tried to implement 
+a linux principle of havinga tool to do a well a 
+specific job. This is for adding headers to fasta files
+only.
 """
 
 import os
