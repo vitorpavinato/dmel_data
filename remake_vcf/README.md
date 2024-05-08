@@ -2,8 +2,30 @@
 
 Some ideas to make DGN data usable for vcf-based tools.
 
+I recommend you structure your working directory as something like this:
+```bash
+.
+├── dpgp3
+│   ├── dmel_data
+│   ├── dpgp3.txt
+│   ├── masked
+│   │   ├── Chr2L
+│   │   ├── Chr2R
+│   │   ├── Chr3L
+│   │   ├── Chr3R
+│   │   ├── fastas
+│   │   └── vcfs
+│   │       ├── liftedover
+│   │       ├── remade
+│   │       └── rooted
+│   └── originals
+├── reference
+├── packages
+└── simulans_sequences
+```
+
 ### Download DGN data
-First download the consensus sequence FASTA from [DGN](https://www.johnpool.net/genomes.html). Go to the bottom of the page where you see a bunch of links like \<name\>_SEQ. These are the links to a compressed folder that contains `.seq` files with consensus FASTA sequences for each individual organized for each chromosome. We used the data from DPGP3 that contains the 197 Zambia genomes.
+First download the consensus sequence FASTA from [DGN](https://www.johnpool.net/genomes.html) for the target population (sample). Go to the bottom of the page where you see a bunch of links like \<name\>_SEQ. These are the links to a compressed folder that contains `.seq` files with consensus FASTA sequences for each individual organized for each chromosome. Here I am showing as an example the analysis of data from DPGP3 that contains the 197 Zambia genomes.
 
 ```zsh
 mkdir data
@@ -13,13 +35,17 @@ wget http://pooldata.genetics.wisc.edu/dpgp3_sequences.tar.bz2
 md5sum-lite dpgp3_sequences.tar.bz2 906d282740a56e5273a4cbc5abfb61f9
 ```
 
+After checking the md5sum and decompressing the file, you should place the folder containing the chromosomes FASTA inside the folder I named `originals`.
+
 ### Run DGN masking scripts
-Second, download the [masking package](http://johnpool.net/masking.zip) also from DGN. It contains a set of files and scripts used to mask problematic sites previously identified containing traces of identity-by-descent (IBD) or admixture. Copy both scripts and the interval files (two `.csv` files) inside each chromosome folder, and run the two `Perl`` scripts. Here I am showing how to run them inside chromosome 2L folder:
+Second, download the [masking package](http://johnpool.net/masking.zip) also from DGN. It contains a set of files and scripts used to mask problematic sites previously identified containing traces of identity-by-descent (IBD) or admixture. Copy both scripts and the interval files (two `.csv` files) inside each chromosome folder (that should now be inside `originals`), and run the two `Perl`` scripts. Here I am showing how to run them inside chromosome 2L folder (I am showing only the analysis of Chr2L, for the rest of this document).
 
 First download the masking package:
 ```zsh
 wget http://johnpool.net/masking.zip
 ```
+
+You can either delete the compressed files or keep them. You can create a folder in the root of your project called `packages` to save the scrips, CSVs and the original `.zip` files in there.
 
 Then copy these files to each of the folder containing sequences for each chromosome.
 ```zsh
@@ -34,13 +60,19 @@ perl admixture_mask_seq.pl
 
 You need to repeat it for all folders (I know, it is tedious, I stopped at chr3R after running the other three major chromosomes - maybe you can open four terminal windows and run then one script at time, but in four different chromosomes...)
 
-If the individual has IBD or Admixture traces, an `N` will replace the nucleotide on the problematic position. For each chromosome, the result is a set of individuals genomes (masked or not). 
-
-### Add sample names to each sequence
-These `.seq` files don't have header (I don't know why?). Copy the name of each individual and place it as a header (using bash please). I prepared a script that takes the names of each individual placed in a one-column `.txt` file, opens the corresponding `.seq`, and add the corresponding name of the sample as the header:
+If the individual has IBD or Admixture traces, an `N` will replace the nucleotide on the problematic position. For each chromosome, the result is a set of individuals genomes (masked or not). Move the masked files to the corresponding folder named with the chromosome name inside the folder `masked`.
 
 ```zsh
-python add_head_to_fasta_files.py -s _Chr2L.seq -n dpgp3.txt
+mv *_Chr2L.seq ../../masked/Chr2L/
+```
+
+### Add sample names to each sequence
+These `.seq` files don't have header (I don't know why?). Copy the name of each individual and place it as a header (using bash please with something like ```ls -1 *.seq | rev | cut -c11- | rev > dpgp3.txt```). You can keep this files at the root directory of your project, as it is shown in the above directory structure. I prepared a script that takes the names of each individual placed in a one-column `.txt` file (as the one created above), opens the corresponding `.seq`, and adds the corresponding name of the sample as the header:
+
+```zsh
+# You should run it for each chromosome file:
+cd ../..masked/Chr2L
+python ../../dmel_data/remake_vcf/add_head_to_fasta_files.py -s _Chr2L.seq -n ../../dpgp3.txt
 ```
 
 ### Run snp-site
@@ -80,30 +112,21 @@ With a `better DGN vcf file`, now is time to lift the positions over to the newe
 GATK is a great tool, not easy to use. Sometimes the headaches that follows when you try to use this tools is caused by some incompatibilities with the Java you have installed. To avoid it, we are going to use GATK packaged in a container. First, you need to have Docker or Singularity installed (sorry, I am not going to cover how to install here). Then go to this [page](https://hub.docker.com/r/broadinstitute/gatk/tags/) to find the version of GATK Docker you want to have. With the version, and after installing Docker in your computer, open a terminal window and type:
 
 ```zsh
-docker pull broadinstitute/gatk:latest
+JAVA='/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin/java'
+GATK='/Users/tur92196/local/gatk-4.5.0.0/gatk-package-4.5.0.0-local.jar'
 ```
-This will pull a copy of the container in your computer (it is like a virtual machine packaged with everything you need to run the target program).
 
-Now, you need to be able to use the tools inside the Docker with your data. There are mainly two ways to do so: one is to copy your data to a folder inside the machine, the second and the one showed here, is to link a native folder in your computer to the folder inside the container. You machine folder, then should contain all the files you need for the liftover:
-- your target `.vcf`;
+To run GATK `LiftoverVcf`, you should have:
+- your `.vcf` you want to lift to the newest genome;
 - the reference sequence of the target genome (the one you are lifting the SNPs to);
 - the associated `.dict` file (see how to get one below);
-- and the chain files, downloaded from UCSC (found [here](https://hgdownload.soe.ucsc.edu/goldenPath/dm3/liftOver/)).
+- and the chain files, downloaded from UCSC (found [here](https://hgdownload.soe.ucsc.edu/goldenPath/dm3/liftOver/)), containing the chains from the oldest (here dm3) to the newest target genome (dm6).
 
-How to create a folder to link the machines:
-```zsh
-docker run -v ~/my_folder:/gatk/my_data -it broadinstitute/gatk:latest
-```
-
-More info on how to use GATK Docker version, can be found [here](https://gatk.broadinstitute.org/hc/en-us/articles/360035889991--How-to-Run-GATK-in-a-Docker-container).
-
-Where `my_folder` is a folder in my computer and `gatk/my_data` is a folder inside the Docker.
-
-Put everything you have except the `.dict` file in your folder. After creating the link, we will be able to navigate inside the container. There we will run, to obtain the `.dict` file. You can find the [documentation here](https://gatk.broadinstitute.org/hc/en-us/articles/360037422891-CreateSequenceDictionary-Picard-):
+Go inside the folder you have the genome file of the target genome. There we will run, to obtain the `.dict` file. You can find the [documentation here](https://gatk.broadinstitute.org/hc/en-us/articles/360037422891-CreateSequenceDictionary-Picard-):
 
 ```bash
 cd reference
-gatk CreateSequenceDictionary \\ 
+$JAVA -jar $GATK CreateSequenceDictionary \\ 
     -R dm6.fa \\ 
     -O dm6.fa.dict
 ```
@@ -112,32 +135,31 @@ With everything in place, then type, to have lift SNPs from one genome to the ta
 ```bash
 cd ..
 
-gatk LiftoverVcf \\ 
-    -I dmel_data/remake_vcf/example/example_output.vcf \\ 
-    -O dmel_data/remake_vcf/example/example_output_lifted.vcf \\ 
+$JAVA -jar $GATK LiftoverVcf \\ 
+    -I dmel_data/remake_vcf/example/example_output_remade_rooted.vcf \\ 
+    -O dmel_data/remake_vcf/example/example_output_remade_rooted_lifted.vcf \\ 
     -C reference/dm3ToDm6.over.chain \\ 
-    --REJECT dmel_data/remake_vcf/example/example_output_rejected.vcf \\ 
+    --REJECT dmel_data/remake_vcf/example/example_output_remade_rooted_rejected.vcf \\ 
     -R reference/dm6.fa \\ 
     --WARN_ON_MISSING_CONTIG true \\ 
-    --RECOVER_SWAPPED_REF_ALT true
-
+    --RECOVER_SWAPPED_REF_ALT true &
 ```
 
 ### Additional filtering
 
-Now that everthing is in place, we should filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` for this task.
+Now that everthing is in place, you can filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` for this task.
 
 ```zsh
-vcftools --vcf remake_vcf/example/example_output_lifted.vcf \\ 
-        --out example_output_lifted_fltr  
+vcftools --vcf remake_vcf/example/example_output_remade_rooted_lifted.vcf \\ 
+        --out example_output_remade_rooted_lifted_fltr  
         --min-alleles 2 \\ 
         --max-alleles 2 \\ 
-        --max-missing 0.5 \\ 
+        --max-missing 0.5 \\ # Depending what you want to accomplish, this might be too restrictive
         --recode \\ 
         --recode-INFO-all
 ```
 
 Remove the `.recode.` part of the file name to kept file naming simple.
 ```zsh
-mv example_output_lifted_fltr.recode.vcf example_output_lifted_fltr.vcf
+mv example_output_remade_rooted_lifted_fltr.recode.vcf example_output_remade_rooted_lifted_fltr.vcf
 ```
