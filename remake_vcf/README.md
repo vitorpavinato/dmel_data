@@ -139,13 +139,13 @@ I advise to use the reference genomes (and annotations) stored at [UCSC genome b
 Now that we have a `better DGN vcf files`, we can determine the ancestral state of each SNP using a simple parsimony strategy. It is optional. If you don't need to know the AAs, you can jump to the next section. The idea here is to use the reference genome sequencing of one of *D. melanogaster* sister species to find the state before the two species splited from a common ancestor. I use *D. simulans* because, conviently, there is a version of this species genome that was aligned to *D. melanogaster* genome. This whole genome aligment underwent some manipulation to make sure the syntenic regions between the two species was present along with masked regions, in a way that the new genome of *D. simulans* has the same number of bp as in *D. melanogaster* genome. This make any sequence comparison straigthford. This alignment was done on dm3, so were are good to go.
 
 ```zsh
-python root_vcf_by_parsimony.py -i example/example_remade.vcf -o example/example_remade_rooted.vcf -r ../../../simulans_sequences/dsim2_as_dmel5.fasta -s /Users/tur92196/local/samtools1_8/bin/samtools
+python root_vcf_by_parsimony.py -i example/example_remade.vcf -o example/example_remade_rooted.vcf -r ../../../simulans_sequences/dsim2_as_dmelr5.fasta -s /Users/tur92196/local/samtools1_8/bin/samtools
 ```
 
 ### Liftover VCF
-With a `better DGN vcf file`, now is time to lift the positions over to the newest (at least the newest at UCSC genome browser) Dmel genome (release 6). We are going to use GATK `Picard` [LiftoverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360037060932-LiftoverVcf-Picard). 
+Now is time to lift the positions over to the newest (at least the newest at UCSC genome browser) Dmel genome (release 6). We are going to use GATK `Picard` [LiftoverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360037060932-LiftoverVcf-Picard). The input VCF here can be the one from above (rooted) or the one not rooted.
 
-GATK is a great tool, not easy to use.
+First create variables to store the PATH of GATK and the JAVA required to run the program.
 
 ```zsh
 JAVA='/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin/java'
@@ -161,7 +161,7 @@ To run GATK `LiftoverVcf`, you should have:
 Go inside the folder you have the genome file of the target genome. There we will run, to obtain the `.dict` file. You can find the [documentation here](https://gatk.broadinstitute.org/hc/en-us/articles/360037422891-CreateSequenceDictionary-Picard-):
 
 ```bash
-cd reference
+cd ../../../reference
 $JAVA -jar $GATK CreateSequenceDictionary \\ 
     -R dm6.fa \\ 
     -O dm6.fa.dict
@@ -169,33 +169,33 @@ $JAVA -jar $GATK CreateSequenceDictionary \\
 
 With everything in place, then type, to have lift SNPs from one genome to the target genome:
 ```bash
-cd ..
+cd ../dpgp3/dmel_data/remake_vcf/
 
-$JAVA -jar $GATK LiftoverVcf \\ 
-    -I dmel_data/remake_vcf/example/example_output_remade_rooted.vcf \\ 
-    -O dmel_data/remake_vcf/example/example_output_remade_rooted_lifted.vcf \\ 
-    -C reference/dm3ToDm6.over.chain \\ 
-    --REJECT dmel_data/remake_vcf/example/example_output_remade_rooted_rejected.vcf \\ 
-    -R reference/dm6.fa \\ 
-    --WARN_ON_MISSING_CONTIG true \\ 
-    --RECOVER_SWAPPED_REF_ALT true &
+$JAVA -jar $GATK LiftoverVcf \\
+-I example/example_remade_rooted.vcf \\
+-O example/example_remade_rooted_lifted.vcf \\
+-C ../../../reference/dm3ToDm6.over.chain \\
+--REJECT example/example_remade_rooted_rejected.vcf \\
+-R ../../../reference/dm6.fa \\
+--WARN_ON_MISSING_CONTIG true \\
+--RECOVER_SWAPPED_REF_ALT true &
 ```
 
 ### Additional filtering
 
-Now that everthing is in place, you can filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` for this task.
+Now that everthing is in place, you can filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` so make sure it is in your PATH for this task (this is optional depending on your project context):
 
 ```zsh
-vcftools --vcf remake_vcf/example/example_output_remade_rooted_lifted.vcf \\ 
-        --out example_output_remade_rooted_lifted_fltr  
-        --min-alleles 2 \\ 
-        --max-alleles 2 \\ 
-        --max-missing 0.5 \\ # Depending what you want to accomplish, this might be too restrictive
-        --recode \\ 
-        --recode-INFO-all
+vcftools --vcf example/example_remade_rooted_lifted.vcf \\
+--out example/example_remade_rooted_lifted_fltr \\
+--min-alleles 2 \\
+--max-alleles 2 \\
+--max-missing 0.5 \\
+--recode \\
+--recode-INFO-all
 ```
 
 Remove the `.recode.` part of the file name to kept file naming simple.
 ```zsh
-mv example_output_remade_rooted_lifted_fltr.recode.vcf example_output_remade_rooted_lifted_fltr.vcf
+mv example/example_remade_rooted_lifted_fltr.recode.vcf example/example_remade_rooted_lifted_fltr.vcf
 ```
