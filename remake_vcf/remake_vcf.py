@@ -55,14 +55,14 @@ def remake_vcf_header(
     # Add new line
     modified_header_lines.append("##ALT=<ID=NON_REF,Description=\"Represents any possible alternative allele at this location\">\n")
 
-    # Add FORMAT line remove above
+    # Add FORMAT line removed above
     modified_header_lines.append(format_str_inf)
 
     # Add multiple new lines
     new_lines = [
         "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Allele count in genotypes, for each ALT allele, in the same order as listed\">\n",
         "##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency, for each ALT allele, in the same order as listed\">\n",
-        "##INFO=<ID=AN,Number=1,Type=Integer,Description=\"Total number of alleles in called genotypes\">\n"
+        #"##INFO=<ID=AN,Number=1,Type=Integer,Description=\"Total number of alleles in called genotypes\">\n"
     ]
     modified_header_lines.extend(new_lines)
 

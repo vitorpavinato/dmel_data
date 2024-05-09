@@ -15,6 +15,48 @@ from typing import List
 from remake_vcf import create_samtools_faix
 
 
+def add_root_info_to_vcf_header(
+    input_file: Path, output_file: Path
+) -> None:
+    """
+    Edit a vcf header to add root information. 
+    This function makes the header to a standard format 
+    compatible with GATK.
+    """
+
+    # Process header lines
+    header_lines = []
+    with open(input_file, 'r', encoding='utf-8') as input_file_obj:
+        # Process lines starting with "##" or "#"
+        for line in input_file_obj:
+            if line.startswith("##") or line.startswith("#"):
+                header_lines.append(line)
+
+    # Add new lines and modify existing lines
+    modified_header_lines = header_lines.copy()  # Create a copy of the original header lines
+
+    # Remove two lines but add then later in the file processing
+    # That is the reason to save then as variable for later
+    # at same time I am using pop() method.
+    chrm_line_header = modified_header_lines.pop(5)
+    ref_line_header = modified_header_lines.pop(5)
+    colum_names_line = modified_header_lines.pop(5)
+
+    # Add new line
+    modified_header_lines.append("##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n")
+
+    # Add lines removed above
+    modified_header_lines.append(chrm_line_header)
+    modified_header_lines.append(ref_line_header)
+    modified_header_lines.append(colum_names_line)
+
+    # Write the modified header lines to the output file or perform further manipulations
+    # For example, writing to the output file:
+    with open(output_file, 'w', encoding='utf-8') as output_file_obj:
+        for line in modified_header_lines:
+            output_file_obj.write(line)
+
+
 def root_snps_by_parsimony(
     input_file: Path = None,
     output_file: Path = None,
@@ -48,13 +90,9 @@ def root_snps_by_parsimony(
     create_samtools_faix(outgroup_file, samtools_path)
     print("Faidx created for the outgroup reference...")
 
-    # Copy the input vcf header to the output vcf
-    with open(input_file, "r", encoding="utf-8") as input_file_obj, open(output_file, "a", encoding="utf-8") as output_file_obj:
-        for line in input_file_obj:
-            if (line.startswith("##") or line.startswith("#")):
-                output_file_obj.write(line)
-            else:
-                break
+    # run add_root_info_to_vcf_header
+    add_root_info_to_vcf_header(input_file, output_file)
+    print("Header updated with AA info...")
 
     # Process remaining lines
     with open(input_file, "r", encoding="utf-8") as input_file_obj, open(output_file, "a", encoding="utf-8") as output_file_obj:

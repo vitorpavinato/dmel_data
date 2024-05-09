@@ -8,7 +8,6 @@
 ##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">
 ##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
 ##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
-##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
 ##INFO=<ID=AttemptedAlleles,Number=1,Type=String,Description="The alleles of the variant in the TARGET prior to failing due to reference allele mismatching to the target reference.">
 ##INFO=<ID=AttemptedLocus,Number=1,Type=String,Description="The locus of the variant in the TARGET prior to failing due to reference allele mismatching to the target reference.">
 ##contig=<ID=chr2L,length=23011544>
