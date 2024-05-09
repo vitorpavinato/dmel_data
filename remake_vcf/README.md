@@ -135,6 +135,13 @@ Where `-i`is the imput vcf you whant to fix, `-r` is the PATH for the reference 
 
 I advise to use the reference genomes (and annotations) stored at [UCSC genome browse](https://genome.ucsc.edu/cgi-bin/hgGateway) because the chromosomes are named with the same naming system as in the chain file. The chain files will be used in later steps to liftover the SNPs from dm3 (dmel r.5.x) to dm6 (dmel r.6.x).
 
+### Rooting or annotating the SNPs with the ancestral state
+Now that we have a `better DGN vcf files`, we can determine the ancestral state of each SNP using a simple parsimony strategy. It is optional. If you don't need to know the AAs, you can jump to the next section. The idea here is to use the reference genome sequencing of one of *D. melanogaster* sister species to find the state before the two species splited from a common ancestor. I use *D. simulans* because, conviently, there is a version of this species genome that was aligned to *D. melanogaster* genome. This whole genome aligment underwent some manipulation to make sure the syntenic regions between the two species was present along with masked regions, in a way that the new genome of *D. simulans* has the same number of bp as in *D. melanogaster* genome. This make any sequence comparison straigthford. This alignment was done on dm3, so were are good to go.
+
+```zsh
+python root_vcf_by_parsimony.py -i example/example_remade.vcf -o example/example_remade_rooted.vcf -r ../../../simulans_sequences/dsim2_as_dmel5.fasta -s /Users/tur92196/local/samtools1_8/bin/samtools
+```
+
 ### Liftover VCF
 With a `better DGN vcf file`, now is time to lift the positions over to the newest (at least the newest at UCSC genome browser) Dmel genome (release 6). We are going to use GATK `Picard` [LiftoverVcf](https://gatk.broadinstitute.org/hc/en-us/articles/360037060932-LiftoverVcf-Picard). 
 
