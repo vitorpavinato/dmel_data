@@ -19,6 +19,7 @@ I recommend you structure your working directory as something like this:
 │   │       ├── remade
 │   │       └── rooted
 │   └── originals # Is where the original data from DGN are stored
+├── data
 ├── reference # Reference genome and associated files
 ├── packages # Where I placed the masking packages
 └── simulans_sequences # This is for rooting (optional showed below)
@@ -52,12 +53,14 @@ You can either delete the compressed files or keep them. You can create a folder
 Download the masking package:
 ```zsh
 mkdir packages
+cd packages
 wget http://johnpool.net/masking.zip
 ```
 
 Then copy these files to each of the folder containing sequences for each chromosome (I am oly showing for the chromosome 2L here).
 
 ```zsh
+cd ..
 cp -b packages/masking/*.pl dpgp3/originals/Chr2L
 cp -b packages/masking/*.csv dpgp3/originals/Chr2L
 cd dpgp3/originals/Chr2L
@@ -119,11 +122,12 @@ Snp-site has no way to know which base in the multi-fasta alignment is in the re
 Here is how you run `remake_vcf`. There are two examples below: 1- for the entire 2L vcf, another with a sample of SNP from chromosome 2L (called example). For the rest of this tutorial I will be using this vcf.
 
 ```zsh
-mkdir remade # to store the fixed vcf files
+cd ..
+mkdir -p vcfs/remade # to store the fixed vcf files
 cd vcfs
 
 # An example on how to run on a vcf derived from the aligments of chromosome 2L samples
-python ../../remake_vcf.py -i ZI_Chr2L.vcf -r ../../../reference/dm3.fa -c chr2L -l 23011544 -o ../remade/ZI_Chr2L_remade.vcf -s /Users/tur92196/local/samtools1_8/bin/samtools
+python ../../dmel_data/remake_vcf/remake_vcf.py -i ZI_Chr2L.vcf -r ../../../reference/dm3.fa -c chr2L -l 23011544 -o remade/ZI_Chr2L_remade.vcf -s /Users/tur92196/local/samtools1_8/bin/samtools
 
 # To run the examples provided with the GitHub repository, you need to move insed the copy of the repository you downloaded.
 cd ../../dmel_data/remake_vcf
