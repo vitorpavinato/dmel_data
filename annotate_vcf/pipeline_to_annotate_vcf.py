@@ -6,7 +6,7 @@ import os
 import argparse
 import sys
 from pathlib import Path
-from .annotation_class import SIFT4GAnnotation, SNPEFFAnnotation
+from annotation_class import SIFT4GAnnotation, SNPEFFAnnotation
 
 
 def parseargs():

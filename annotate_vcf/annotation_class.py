@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from .simplify_snpeff import simplify_snpeff_default, simplify_snpeff_with_custom_annotation
+from simplify_snpeff import simplify_snpeff_default, simplify_snpeff_with_custom_annotation
 
 
 @dataclass
