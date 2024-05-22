@@ -1,0 +1,74 @@
+# The following table is formatted as tab separated values. 
+#GeneName	GeneId	TranscriptId	BioType	variants_impact_MODIFIER	variants_effect_DOWNSTREAM	variants_effect_INTRON	variants_effect_UPSTREAM	variants_effect_UTR_3_PRIME
+CG13694	FBgn0031219	FBtr0078160	protein_coding	2	2	0	0	0
+CG13694	FBgn0031219	FBtr0336838	protein_coding	2	2	0	0	0
+CG17075	FBgn0031239	FBtr0078142	protein_coding	3	3	0	0	0
+CG17075	FBgn0031239	FBtr0308252	protein_coding	3	0	0	0	3
+CG31974	FBgn0051974	FBtr0300987	protein_coding	2	2	0	0	0
+CG31974	FBgn0051974	FBtr0330644	protein_coding	2	2	0	0	0
+CG31974	FBgn0051974	FBtr0330645	protein_coding	2	2	0	0	0
+CG31975	FBgn0051975	FBtr0302195	protein_coding	2	2	0	0	0
+CG31975	FBgn0051975	FBtr0302196	protein_coding	2	2	0	0	0
+CG3645	FBgn0031238	FBtr0078140	protein_coding	3	0	3	0	0
+CG3645	FBgn0031238	FBtr0078141	protein_coding	3	0	3	0	0
+CG4822	FBgn0031220	FBtr0078156	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0078157	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0078158	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0078159	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0100307	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0100308	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0100309	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0100310	protein_coding	2	2	0	0	0
+CG4822	FBgn0031220	FBtr0330646	protein_coding	2	2	0	0	0
+CR11023	FBgn0031208	FBtr0475186	pseudogene	23	0	0	23	0
+Cda5	FBgn0051973	FBtr0078163	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0078164	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0113416	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0309225	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0309226	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0309227	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0309228	protein_coding	2	0	0	0	2
+Cda5	FBgn0051973	FBtr0309229	protein_coding	2	0	0	0	2
+FBti0059810	FBti0059810	FBti0059810-RA		22	22	0	0	0
+FBti0059812	FBti0059812	FBti0059812-RA		2	2	0	0	0
+FBti0059814	FBti0059814	FBti0059814-RA		2	2	0	0	0
+FBti0060557	FBti0060557	FBti0060557-RA		2	0	0	2	0
+FBti0060580	FBti0060580	FBti0060580-RA		23	0	0	23	0
+Gs1	FBgn0001142	FBtr0078114	protein_coding	2	2	0	0	0
+Gs1	FBgn0001142	FBtr0078115	protein_coding	2	2	0	0	0
+Gs1	FBgn0001142	FBtr0300568	protein_coding	2	2	0	0	0
+Ir21a	FBgn0031209	FBtr0113008	protein_coding	2	0	0	2	0
+ND-15	FBgn0031228	FBtr0306542	protein_coding	4	0	2	2	0
+ND-15	FBgn0031228	FBtr0330638	protein_coding	4	0	2	2	0
+ND-15	FBgn0031228	FBtr0330639	protein_coding	4	0	2	2	0
+Sam-S	FBgn0005278	FBtr0089428	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089429	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089430	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089431	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089432	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089433	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089434	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089435	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089436	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0089437	protein_coding	2	0	2	0	0
+Sam-S	FBgn0005278	FBtr0308091	protein_coding	2	2	0	0	0
+Sam-S	FBgn0005278	FBtr0330656	protein_coding	2	0	2	0	0
+asRNA:CR43609	FBgn0263584	FBtr0309810	lincRNA	2	2	0	0	0
+l(2)gl	FBgn0002121	FBtr0078166	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0078167	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0078168	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0078169	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0078170	protein_coding	22	22	0	0	0
+l(2)gl	FBgn0002121	FBtr0078171	protein_coding	22	22	0	0	0
+l(2)gl	FBgn0002121	FBtr0306589	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0306590	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0306591	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0306592	protein_coding	24	22	0	2	0
+l(2)gl	FBgn0002121	FBtr0330655	protein_coding	24	22	0	2	0
+lncRNA:CR44185	FBgn0265074	FBtr0336836	lincRNA	2	2	0	0	0
+lncRNA:CR44186	FBgn0265075	FBtr0336837	lincRNA	2	2	0	0	0
+lncRNA:CR44219	FBgn0265150	FBtr0336988	lincRNA	3	0	0	3	0
+net	FBgn0002931	FBtr0290323	protein_coding	2	0	2	0	0
+net	FBgn0002931	FBtr0330637	protein_coding	2	0	2	0	0
+ovm	FBgn0051976	FBtr0302194	protein_coding	2	2	0	0	0
+ovm	FBgn0051976	FBtr0346127	protein_coding	2	2	0	0	0
