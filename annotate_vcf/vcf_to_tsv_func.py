@@ -162,4 +162,4 @@ def write_tsv_file(lines: List[List[str]], header: List[str], outputfile: str) -
         fo.write(header + "\n")
         for line in lines:
             fo.write(("\t".join(str(item) for item in line)) + "\n")
-    print("DONE!!!")
+    print("tsv file exported to: " + outputfile)

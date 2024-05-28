@@ -149,4 +149,5 @@ def fix_mutational_context(
                 vcf_lines[current_element][15] = get_reversed_complementary_strand(vcf_lines[current_element][13])
                 vcf_lines[current_element][16] = get_reversed_complementary_strand(vcf_lines[current_element][14])
 
+    print("Mutational context fixed!")
     return vcf_lines

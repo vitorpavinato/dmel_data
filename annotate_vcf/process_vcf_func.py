@@ -53,8 +53,8 @@ def process_info(
 
     if sift4g_annotation:
         return info_subitems_list, snpeff, sift
-    else:
-        return info_subitems_list, snpeff
+    # else:
+    return info_subitems_list, snpeff
 
 
 # Count the number of alternative and reference genotypes
@@ -126,6 +126,13 @@ def get_snpeff_items(
         genotype,
         *errors,
     ) = eff.strip().split("|")
+
+    # This might fix empty values not replaced with NA
+    if not bool(functional_class.strip()):
+        functional_class = "NA"
+
+    if not bool(transcript_biotype.strip()):
+        transcript_biotype = "NA"
 
     # Unpack codons (for gatk format)
     # if effect == "SYNONYMOUS_CODING" or effect == "NON_SYNONYMOUS_CODING":

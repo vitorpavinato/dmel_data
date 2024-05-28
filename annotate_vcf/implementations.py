@@ -17,7 +17,7 @@ def processes_snpeff_sift4g_vcf(
     Railroad pattern #1: The vcf includes annotations from SNPEff and SIFT4G
     """
 
-    print("Start processing the annotate VCF file. It might take a while...")
+    print("Start processing the SNPEff and SIFT4G annotated VCF file. It might take a while...")
     with open(inputfile, "r", encoding="utf-8") as input_file:
 
         # Initialize variables used internally
@@ -118,7 +118,7 @@ def processes_snpeff_vcf(
     Railroad pattern #2: The vcf includes annotations from SNPEff only
     """
 
-    print("Start processing the annotate VCF file. It might take a while...")
+    print("Start processing the SNPEff only annotated VCF file. It might take a while...")
     with open(inputfile, "r", encoding="utf-8") as input_file:
 
         # Initialize variables used internally
