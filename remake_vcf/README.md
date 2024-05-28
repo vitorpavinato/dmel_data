@@ -185,9 +185,11 @@ $JAVA -jar $GATK LiftoverVcf \\
 --RECOVER_SWAPPED_REF_ALT true &
 ```
 
-### Additional filtering
+### Keep only bi-allelic SNPs
 
-Now that everthing is in place, you can filter out SNPs with more than one alternative allele (retain only bi-allelic), and SNPs with a lot of missing data (more than 50%). We are going to use `vcftools` so make sure it is in your PATH for this task (this is optional depending on your project context):
+This is mandatory step: the [annotation pipeline](https://github.com/vitorpavinato/dmel_data/tree/main/annotate_vcf) only deals with bi-allelic SNPs.
+
+Now that everthing is in place, we are going to filter out SNPs with more than one alternative allele to retain only bi-allelic. You can also filter out a lot of missing data (more than 50%). We are going to use `vcftools` so make sure it is in your PATH for this task (this is optional depending on your project context):
 
 ```zsh
 vcftools --vcf example/example_remade_rooted_lifted.vcf \\
