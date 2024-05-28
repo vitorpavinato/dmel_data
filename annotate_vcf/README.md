@@ -1,8 +1,8 @@
-# Annotation pipeline
+# How to annotate a vcf and convert it to a tsv table
 
-Here I show how to run the annotation pipeline.
+Here I show how to run the annotation pipeline on a vcf file (that was filtered out for tri-allelic SNPs).
 ```zsh
-python pipeline_to_annotate_vcf.py -i examples/lifted/example_remade_rooted_lifted.vcf -d Drosophila_melanogaster -b examples/intervals/dm6_short_introns.bed -o examples/snpeff -s /Users/tur92196/local/sift4g/BDGP6.83 -f examples/sift4g
+python pipeline_to_annotate_vcf.py -i examples/biallelic/example_remade_rooted_lifted_filtered.vcf -d Drosophila_melanogaster -b examples/intervals/dm6_short_introns.bed -o examples/snpeff -s /Users/tur92196/local/sift4g/BDGP6.83 -f examples/sift4g
 ```
 
 To run this pipeline like above, you should have installed [SNPEff](https://pcingola.github.io/SnpEff/) and [SIFT4](https://sift.bii.a-star.edu.sg/sift4g/). SIFT4 is optional if you don't provide a PATH to a database. But if you provided, you should provid the PATH for an output folder. Another optional argument is the PATH for the file containing intervals you want to include in SNPEff annotation. It should be a BED-like file containing somehow "custom" annotations. The pipeline looks for the presence of a file PATH and when triggered, it implements SNPEff `-interval` argument.
@@ -24,6 +24,27 @@ options:
   -f SIFT4G_OUTPUT_FOLDER
                         Output folder for SIFT4G annotations (default: None)
 ```
+
+After running the pipeline, you can convert the annotated vcf to a tsv table:
+```zsh
+usage: python vcf_to_table.py [-h] -i INPUTFILE [-o OUTPUTFILE] -r REFERENCE -s SAMTOOLS_PATH [-f NFLANKINBPS] [-c CUSTOM_EFFECT_NAME] [-n NEW_CUSTOM_EFFECT_NAME] [-e]
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUTFILE          Input vcf file name (default: None)
+  -o OUTPUTFILE         Output tsv file name (default: None)
+  -r REFERENCE          Path to the reference genome of the vcf file (default: None)
+  -s SAMTOOLS_PATH      Path to the samtools (default: None)
+  -f NFLANKINBPS        Number of bases flanking each targeted SNP (default: 3)
+  -c CUSTOM_EFFECT_NAME
+                        Custom effect name (default: None)
+  -n NEW_CUSTOM_EFFECT_NAME
+                        New custom effect name (default: None)
+  -e                    Input vcf with SIFT4G annotations (default: False)
+```
+
+
+
 
 ### Issues:
 - `simplify_snpeff.py` only takes the first term from SNPEff annotation. For bi-allelic SNPs, the first term should be the important one (with the annotation of the most impacted change); but for tri-allelic there are the issue with the most important annotation per allele, and which allele is the most (or least) common one. Right now, the script picks the first term, regardless of all these issues for tri-allelic(s). ADVICE: remove tri-allelics before running this pipeline.
