@@ -81,6 +81,27 @@ def count_genotypes(genotypes: list) -> Tuple[int, int]:
     return genotype_count_list
 
 
+# Get reverse complement of a DNA sequence
+def get_reversed_complementary_strand(sequence: str) -> str:
+    """
+    Find the complementary strand and reverse to 5' to 3'.
+    """
+    # This is a dictionary with the complement nucleotides
+    nt_pairs = {"A": "T", "T": "A", "G": "C", "C": "G"}
+
+    # Cast the input sequence to a list
+    sequence = list(sequence)
+
+    # Obtain the complementary strand
+    complementary = [nt_pairs[nt] for nt in sequence]
+
+    # Reverse the complementary strand
+    reverse = list(complementary[::-1])
+
+    # Return the reversed complementary strand
+    return "".join(reverse)
+
+
 # Get the mutational context
 def get_mutational_context(
     chrom: str,
@@ -128,8 +149,19 @@ def get_mutational_context(
     refcontext = flkng_bf.upper() + refallele + flkng_af.upper()
     altcontext = flkng_bf.upper() + altallele + flkng_af.upper()
 
+    # Get the complementary strand for each allele context
+    refcontext_complrev = get_reversed_complementary_strand(refcontext)
+    altcontext_complrev = get_reversed_complementary_strand(altcontext)
+    
     # Return the mutational context as a list
-    mutational_context_list = [refcontext, altcontext]
+    mutational_context_list = [refcontext, altcontext,
+                               refcontext_complrev, altcontext_complrev]
+    # Some order as in the header function.
+    # if change here, should change the order in the header function
+    # and vcf_to_tsv_implementations.py functions?
+    # Also, in the function that fix the mutational context
+    # you should make sure to use the right number for the refcontext and altcontext
+    # If change altcontext here, should change in the header and in the fix function.
 
     return mutational_context_list
 

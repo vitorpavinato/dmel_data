@@ -6,9 +6,12 @@ import argparse
 import sys
 from vcf_to_tsv_utils import *
 from vcf_to_tsv_implementations import *
+from fix_mutational_context import fix_mutational_context
 
 
-inputfile = "/Users/tur92196/WorkDir/DGN/dgrp2/masked/vcfs/sift4g/NC_Chr2L_sample.vcf"
+# This was to test in larger file which might be easy to find closest SNPs
+# inputfile = "/Users/tur92196/WorkDir/DGN/dgrp2/masked/vcfs/sift4g/NC_Chr2L_sample.vcf"
+inputfile = "annotate_vcf/examples/sift4g/example_remade_rooted_lifted_ann_simplified_SIFTpredictions.vcf"
 outputfile = "annotate_vcf/examples/tables/example_remade_rooted_lifted_ann_simplified_SIFTpredictions_table.vcf"
 samtools_path = "/Users/tur92196/local/samtools1_8/bin/samtools"
 reference = "/Users/tur92196/WorkDir/DGN/reference/dm6.fa"
@@ -61,50 +64,59 @@ def vcf_to_tsv(
         )
         header = snpeff_header()
 
+    ### Move this out and make it a function ###
     # Execute the rest of the function.
-    print("Fixing ref and alt mutations on flanking bases. It might take a while...")
-    # for block_lines, block_pos in zip(new_list_lines_in_block, new_list_block):
-    for block_lines, block_pos in zip(list_lines_in_block, list_block):
-        blocksize = len(block_lines)
-        if blocksize > 1:
-            for i, current_element in enumerate(block_lines):
-                elements_before = block_lines[:i]
-                elements_after = block_lines[i + 1:]
-                current_pos = block_pos[i]
-                pos_before = block_pos[:i]
-                pos_after = block_pos[i + 1:]
+    vcf_lines = fix_mutational_context(
+        list_lines_in_block=list_lines_in_block, 
+        list_block=list_block,
+        vcf_lines=vcf_lines, 
+        nflankinbps=nflankinbps
+    )
 
-                # Get the flanking bases that need to be updated
-                current_refcontext = list(vcf_lines[current_element][13]) # refcontext
-                current_altcontext = list(vcf_lines[current_element][14]) # altcontext
 
-                # Check if there are multiple elements before or after
-                if len(elements_before) >= 1:
-                    for j, eb in enumerate(elements_before):
-                        dist = abs(current_pos - pos_before[j])
-                        if dist > nflankinbps:
-                            continue
-                        else:
-                            ref_before = vcf_lines[eb][3] # ref before
-                            alt_before = vcf_lines[eb][4] # alt before
-                            current_refcontext[nflankinbps - dist] = ref_before
-                            current_altcontext[nflankinbps - dist] = alt_before
+    # print("Fixing ref and alt mutations on flanking bases. It might take a while...")
+    # # for block_lines, block_pos in zip(new_list_lines_in_block, new_list_block):
+    # for block_lines, block_pos in zip(list_lines_in_block, list_block):
+    #     blocksize = len(block_lines)
+    #     if blocksize > 1:
+    #         for i, current_element in enumerate(block_lines):
+    #             elements_before = block_lines[:i]
+    #             elements_after = block_lines[i + 1:]
+    #             current_pos = block_pos[i]
+    #             pos_before = block_pos[:i]
+    #             pos_after = block_pos[i + 1:]
 
-                if len(elements_after) >= 1:
-                    for j, ea in enumerate(elements_after):
-                        dist = abs(current_pos - pos_after[j])
-                        print(dist)
-                        if dist > nflankinbps:
-                            continue
-                        else:
-                            ref_after = vcf_lines[ea][3] # ref after
-                            alt_after = vcf_lines[ea][4] # alt after
-                            current_refcontext[nflankinbps + dist] = ref_after
-                            current_altcontext[nflankinbps + dist] = alt_after
+    #             # Get the flanking bases that need to be updated
+    #             current_refcontext = list(vcf_lines[current_element][13]) # refcontext
+    #             current_altcontext = list(vcf_lines[current_element][14]) # altcontext
 
-                # Here update the flanking sequences in the corresponding line
-                vcf_lines[current_element][13] = "".join(current_refcontext)
-                vcf_lines[current_element][14] = "".join(current_altcontext)
+    #             # Check if there are multiple elements before or after
+    #             if len(elements_before) >= 1:
+    #                 for j, eb in enumerate(elements_before):
+    #                     dist = abs(current_pos - pos_before[j])
+    #                     if dist > nflankinbps:
+    #                         continue
+    #                     else:
+    #                         ref_before = vcf_lines[eb][3] # ref before
+    #                         alt_before = vcf_lines[eb][4] # alt before
+    #                         current_refcontext[nflankinbps - dist] = ref_before
+    #                         current_altcontext[nflankinbps - dist] = alt_before
+
+    #             if len(elements_after) >= 1:
+    #                 for j, ea in enumerate(elements_after):
+    #                     dist = abs(current_pos - pos_after[j])
+    #                     print(dist)
+    #                     if dist > nflankinbps:
+    #                         continue
+    #                     else:
+    #                         ref_after = vcf_lines[ea][3] # ref after
+    #                         alt_after = vcf_lines[ea][4] # alt after
+    #                         current_refcontext[nflankinbps + dist] = ref_after
+    #                         current_altcontext[nflankinbps + dist] = alt_after
+
+    #             # Here update the flanking sequences in the corresponding line
+    #             vcf_lines[current_element][13] = "".join(current_refcontext)
+    #             vcf_lines[current_element][14] = "".join(current_altcontext)
     
     
     # Write .tsv file

@@ -19,14 +19,19 @@ def processes_snpeff_sift4g_vcf(
 
     print("Start processing the annotate VCF file. It might take a while...")
     with open(inputfile, "r", encoding="utf-8") as input_file:
+        
+        # Initialize variables used internally
         current_block = []
         lines_in_block = []
-        list_block = []
-        list_lines_in_block = []
         previous_position = 0
         line_trck = 0
-        # Read each line in the file and save to a list
+        
+        # Initialize variables that will be returned
+        list_block = []
+        list_lines_in_block = []
         vcf_lines = []
+        
+        # Read each line in the vcf file and save to a vcf_lines
         for line in input_file:
             if line.startswith("##") or line.startswith("#"):
                 continue
@@ -115,14 +120,19 @@ def processes_snpeff_vcf(
 
     print("Start processing the annotate VCF file. It might take a while...")
     with open(inputfile, "r", encoding="utf-8") as input_file:
+        
+        # Initialize variables used internally
         current_block = []
         lines_in_block = []
-        list_block = []
-        list_lines_in_block = []
         previous_position = 0
         line_trck = 0
-        # Read each line in the file and save to a list
+        
+        # Initialize variables that will be returned
+        list_block = []
+        list_lines_in_block = []
         vcf_lines = []
+        
+        # Read each line in the vcf file and save to a vcf_lines
         for line in input_file:
             if line.startswith("##") or line.startswith("#"):
                 continue
