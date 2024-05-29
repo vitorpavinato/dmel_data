@@ -1,6 +1,11 @@
 """
-This program will get the short introns from a bed file
-and create a .BED file with only short introns.
+This program will take a .BED file containing introns 
+(downloaded from UCSC for example) it will filter out long 
+introns retaining only introns shorter by the value defined in 
+the short_intron_size parameter. This program also allows to 
+trimm both end of the intron by the value defined in the 
+trailling_size parameter.
+
 This is a CLI of create_sfss/snp_utils.py filter_short_intron_from_bed().
 Here it was renamed to get_short_introns_from_bed()
 """
@@ -10,16 +15,17 @@ import sys
 
 
 def get_short_introns_from_bed(
-    input_bed: str, output_bed: str, chrom_list: list[str],
+    inputfile: str, outputfile: str, chrom_list: list[str],
     short_intron_size: int = 86, trailling_size: int = 8
 ) -> None:
     """
-    Create a .BED files with only short introns intervals
+    Function implementation that creates a .BED files with 
+    only short introns intervals.
     """
 
     short_introns = []
 
-    with open(input_bed, "r", encoding="utf-8") as inbed, open(output_bed, "w", encoding="utf-8") as outbed:
+    with open(inputfile, "r", encoding="utf-8") as inbed, open(outputfile, "w", encoding="utf-8") as outbed:
         for linen, line in enumerate(inbed):
             line = line.rstrip("\n")
             if (line.startswith("##") or line.startswith("#") or line.startswith(">") or
@@ -38,7 +44,8 @@ def get_short_introns_from_bed(
             estart = int(estart)
             eend = int(eend)
 
-            # Process only chroms in the list
+            # Process only chroms in the list:
+            # This make the inclusion of any chromosome explicit.
             if any(x == chrom for x in chrom_list):
                 if eend - estart < short_intron_size:
                     estart_trimmed = estart + trailling_size
@@ -48,7 +55,7 @@ def get_short_introns_from_bed(
                     outbed.write('\t'.join(str(item) for item in short_intron) + "\n")
                     short_introns.append(short_intron)
 
-    return f"Short introns saved in: {output_bed}"
+    return f"Short introns saved in: {outputfile}"
 
 
 def parse_chromosome(chrom):
@@ -66,8 +73,8 @@ def parseargs():
     Function defines command-line parsing arguments.
     """
     parser = argparse.ArgumentParser("python get_short_introns_from_bed.py", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", help="Input BED file name", dest="input_bed", required=True, type=str)
-    parser.add_argument("-o", help="Output BED file name", dest="output_bed", required=True, type=str)
+    parser.add_argument("-i", help="Input BED file name", dest="inputfile", required=True, type=str)
+    parser.add_argument("-o", help="Output BED file name", dest="outputfile", required=True, type=str)
     parser.add_argument("-c", help="List of chroms to process", dest="chrom_list", nargs="+", required=True, type=parse_chromosome)
     parser.add_argument("-s", help="Short intron size", dest="short_intron_size", default=86, type=int)
     parser.add_argument("-t", help="Trailling size", dest="trailling_size", default=8, type=int)
@@ -84,15 +91,15 @@ def main(argv) -> None:
     args = parser.parse_args(argv)
 
     # Define input and output files
-    input_bed = args.input_bed
-    output_bed = args.output_bed
+    inputfile = args.inputfile
+    outputfile = args.outputfile
     chrom_list = args.chrom_list
     short_intron_size = args.short_intron_size
     trailling_size = args.trailling_size
 
     # Execute the function
-    result = get_short_introns_from_bed(input_bed=input_bed,
-                                        output_bed=output_bed,
+    result = get_short_introns_from_bed(inputfile=inputfile,
+                                        outputfile=outputfile,
                                         chrom_list=chrom_list,
                                         short_intron_size=short_intron_size,
                                         trailling_size=trailling_size)
