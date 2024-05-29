@@ -5,7 +5,9 @@ Here I show how to run the annotation pipeline on a vcf file (that was filtered 
 python pipeline_to_annotate_vcf.py -i examples/biallelic/example_remade_rooted_lifted_filtered.vcf -d Drosophila_melanogaster -b examples/intervals/short_introns.bed -o examples/snpeff -s /Users/tur92196/local/sift4g/BDGP6.83 -f examples/sift4g
 ```
 
-To run this pipeline like above, you should have installed [SNPEff](https://pcingola.github.io/SnpEff/) and [SIFT4](https://sift.bii.a-star.edu.sg/sift4g/). SIFT4 is optional if you don't provide a PATH to a database. But if you provided, you should provid the PATH for an output folder. Another optional argument is the PATH for the file containing intervals you want to include in SNPEff annotation. It should be a BED-like file containing somehow "custom" annotations. The pipeline looks for the presence of a file PATH and when triggered, it implements SNPEff `-interval` argument.
+To run this pipeline like above, you should have installed [SNPEff](https://pcingola.github.io/SnpEff/) and [SIFT4g](https://sift.bii.a-star.edu.sg/sift4g/). SIFT4 is optional if you don't provide a PATH to a database. But if you provided, you should provid the PATH for an output folder. Another optional argument is the PATH for the file containing intervals you want to include in SNPEff annotation. It should be a BED-like file containing somehow "custom" annotations. The pipeline looks for the presence of a file PATH and when triggered, it implements SNPEff `-interval` argument.
+
+Make sure to change the necessary SNPEff and SIFT4g PATHs in the `annotate_vcf/config.ini` file.
 
 The other parameters are self explained when you have the pipeline help message:
 ```zsh
