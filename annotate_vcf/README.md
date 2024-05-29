@@ -1,4 +1,16 @@
-# How to annotate a vcf and convert it to a tsv table
+# Annotate a vcf file
+
+In this folder, you can find 3 scripts I created to help annotate a vcf file with [SNPEff](https://pcingola.github.io/SnpEff/) and [SIFT4g](https://sift.bii.a-star.edu.sg/sift4g/). You can follow the steps bellow to run the command-lines as standalone programs. 
+
+I also made available in the `notebooks` folder two notebooks I created whan I was annotating *Drosophila melanogster* derived vcfs. I created these notebooks to report the steps for annotation. Now that I have implemented the pipeline as scripts/programs, these notebooks are here for completeness and reference. This repository should not have any updated especially because now it is associated with the manuscript:
+
+```dotnetcli
+"Poisson random field ratios in population genetics: estimating the strength of selection while sidestepping non-selective factors" by Jody Hey and Vitor Pavinato.
+```
+
+Here is the link to the repository containing the program we developed called [PRF_ratios](https://github.com/vitorpavinato/PRF_Ratios).
+
+### Pipeline to annotate a vcf
 
 Here I show how to run the annotation pipeline on a vcf file (that was filtered out for tri-allelic SNPs).
 ```zsh
@@ -45,6 +57,8 @@ options:
   -s SHORT_INTRON_SIZE  Short intron size (default: 86)
   -t TRAILLING_SIZE     Trailling size (default: 8)
 ```
+
+### Convert an annotated vcf to a tsv table
 
 After running the pipeline, you can convert the annotated vcf to a tsv table:
 ```zsh
